@@ -7,6 +7,7 @@ import (
 )
 
 func main() {
-	client_scan.()
+	client_scan.ConnectFileScan()
+	client_scan.ConnectIncrementalBackup()
 	fmt.Println("Hello World!")
 }
