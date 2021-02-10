@@ -1,0 +1,37 @@
+version: "3"
+services:
+  app:
+    build: 
+      context: ./app
+      dockerfile: .devcontainer/Dockerfile
+    ##image: golang
+
+    ports: 
+      - 8000:8000
+    volumes:
+      - ./app:/backup-server
+    command: /bin/sh -c "while sleep 1000; do :; done"
+  database:
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: fypproject
+    volumes:
+      - ./database/db:/data/db
+    ports: 
+      - 27017:27017
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    hostname: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=85v!AP
+    ports:
+      - 15672:15672
+      - 5672:5672
+    volumes: 
+      - ./rabbitmq/db:/var/lib/rabbitmq
+    
+  
+
+    
