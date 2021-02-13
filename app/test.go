@@ -5,7 +5,8 @@ import (
 
 	"github.com/streadway/amqp"
 	//"github.com/wade-sam/fyp-backup-server/client_scan"
-	"project/pkg/connections"
+	//"github.com/wade-sam/fyp-backup-server/pkg/"
+	//"project/pkg/connections"
 )
 
 func main() {
@@ -14,9 +15,9 @@ func main() {
 	//client_scan.ConnectFileScan()
 	//client_scan.ConnectIncrementalBackup()
 	fmt.Println("Hello World!")
-	conn := connections.DBstart()
-	collection := conn.Connection.Database(conn.Config.Database).Collection("client_collection")
-	fmt.Println(collection)
+	//conn := connections.DBstart()
+	//collection := conn.Connection.Database(conn.Config.Database).Collection("client_collection")
+	//fmt.Println(collection)
 	//conn := RabitCreateConnection()
 	//ch := RabbitCreateDefaultChannel(conn)
 	//go DefaultConsumer()
