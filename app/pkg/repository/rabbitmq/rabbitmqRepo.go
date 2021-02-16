@@ -51,7 +51,7 @@ func NewRabbitRepo(schema, username, password, host, port, vhost, connectioname 
 		ConnectionName: connectioname,
 	}
 
-	repo := Broker{
+	repo := &Broker{
 		config: configuration,
 	}
 	client, err := newRabbitClient(&configuration)
@@ -63,4 +63,7 @@ func NewRabbitRepo(schema, username, password, host, port, vhost, connectioname 
 
 	return repo, nil
 
+}
+func (r *Broker) ConnectClient(channel chan int) error {
+	return nil
 }

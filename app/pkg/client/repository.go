@@ -8,5 +8,5 @@ type ClientRepository interface {
 }
 
 type ClientManageRepository interface {
-	//ConnectClient() error
+	ConnectClient(c chan int) error
 }

@@ -15,12 +15,12 @@ func main() {
 		fmt.Println(err, "Don't work")
 	}
 
-	connection, err := rabbitmq.NewRabbitRepo("amqp", "admin", "85v!AP", "rabbitmq", "5672", "/", "host")
+	serviceRabbitRepo, err := rabbitmq.NewRabbitRepo("amqp", "admin", "85v!AP", "rabbitmq", "5672", "/", "host")
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(connection)
-	clientService := client.NewClientService(servicePersistentRepo)
+	fmt.Println(serviceRabbitRepo)
+	clientService := client.NewClientService(servicePersistentRepo, serviceRabbitRepo)
 	policyService := policy.NewPolicyService(servicePersistentRepo)
 
 	clientstruct := client.Client{

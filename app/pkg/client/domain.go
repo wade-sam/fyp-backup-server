@@ -23,14 +23,16 @@ var (
 )
 
 type clientService struct {
-	clientRepo ClientRepository
+	clientRepo  ClientRepository
+	clientsRepo ClientManageRepository
 }
 
 var validate = validator.New()
 
-func NewClientService(clientRepo ClientRepository) ClientService {
+func NewClientService(clientRepo ClientRepository, clientMRepo ClientManageRepository) ClientService {
 	return &clientService{
 		clientRepo,
+		clientMRepo,
 	}
 }
 
@@ -58,5 +60,8 @@ func (p *clientService) DeleteClient(name string) error {
 }
 
 func (p *clientService) ConnectClient() error {
-	return p.ConnectClient()
+	c := make(chan int)
+	p.clientsRepo.ConnectClient(c)
+	return nil
+	//return p.ConnectClient()
 }
