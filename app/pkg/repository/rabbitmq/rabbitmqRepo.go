@@ -40,7 +40,7 @@ func newRabbitClient(config *BrokerConfig) (*amqp.Connection, error) {
 	return conn, nil
 }
 
-func NewRabbitRepo(schema, username, password, host, port, vhost, connectioname string) (ports.BrokerRepository, error) {
+func NewRabbitRepo(schema, username, password, host, port, vhost, connectioname string) (ports.BrokerRepository, *amqp.Connection, error) {
 	configuration := BrokerConfig{
 		Schema:         schema,
 		Username:       username,
@@ -56,14 +56,20 @@ func NewRabbitRepo(schema, username, password, host, port, vhost, connectioname 
 	}
 	client, err := newRabbitClient(&configuration)
 	if err != nil {
-		return nil, errors.Wrap(err, "Repository.NewRabbitRepo")
+		return nil, nil, errors.Wrap(err, "Repository.NewRabbitRepo")
 	}
 
 	repo.connection = client
 
-	return repo, nil
+	return repo, repo.connection, nil
 
 }
+
+func (r *Broker) GrabInstance() amqp.Connection {
+
+	return *r.connection
+}
+
 func (r *Broker) ConnectClient(channel chan int) error {
 	return nil
 }

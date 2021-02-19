@@ -1,7 +1,7 @@
 package ports
 
 import (
-	"github.com/wade-sam/fyp-backup-server/pkg/client"
+	client "github.com/wade-sam/fyp-backup-server/pkg/Client"
 	"github.com/wade-sam/fyp-backup-server/pkg/policy"
 )
 

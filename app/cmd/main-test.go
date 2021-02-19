@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/wade-sam/fyp-backup-server/pkg/client"
+	comms "github.com/wade-sam/fyp-backup-server/client_communication"
+	client "github.com/wade-sam/fyp-backup-server/pkg/Client"
+	"github.com/wade-sam/fyp-backup-server/pkg/Entities"
 	"github.com/wade-sam/fyp-backup-server/pkg/policy"
 	"github.com/wade-sam/fyp-backup-server/pkg/repository/mongo"
 	"github.com/wade-sam/fyp-backup-server/pkg/repository/rabbitmq"
@@ -15,20 +17,20 @@ func main() {
 		fmt.Println(err, "Don't work")
 	}
 
-	serviceRabbitRepo, err := rabbitmq.NewRabbitRepo("amqp", "admin", "85v!AP", "rabbitmq", "5672", "/", "host")
+	serviceRabbitRepo, connection, err := rabbitmq.NewRabbitRepo("amqp", "admin", "85v!AP", "rabbitmq", "5672", "/", "host")
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println(serviceRabbitRepo)
 	clientService := client.NewClientService(servicePersistentRepo, serviceRabbitRepo)
 	policyService := policy.NewPolicyService(servicePersistentRepo)
-
-	clientstruct := client.Client{
+	err = comms.Initialise(clientService, connection)
+	clientstruct := Entities.Client{
 		Clientname:   "jackie boy",
 		Consumername: "host1",
 	}
 
-	policystruct := policy.Policy{
+	policystruct := Entities.Policy{
 		Policyname:  "Wednesday Backup",
 		Clients:     []string{"sam macbook pro", "cameron's macbook pro", "pippa's macbook pro"},
 		Retention:   200,

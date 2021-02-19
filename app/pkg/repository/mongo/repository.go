@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/wade-sam/fyp-backup-server/pkg/client"
-	"github.com/wade-sam/fyp-backup-server/pkg/policy"
+	"github.com/wade-sam/fyp-backup-server/pkg/Entities"
 	"github.com/wade-sam/fyp-backup-server/pkg/ports"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -68,10 +67,10 @@ func NewMongoRepo(prefix, URI, database, username, password string, mongoTimeout
 	return repo, nil
 }
 
-func (r *mongoRepository) FindClient(name string) (*client.Client, error) {
+func (r *mongoRepository) FindClient(name string) (*Entities.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
-	client := &client.Client{}
+	client := &Entities.Client{}
 	collection := r.client.Database(r.Config.Database).Collection("clients_collection")
 	filter := bson.M{"clientname": name}
 	err := collection.FindOne(ctx, filter).Decode(&client)
@@ -84,7 +83,7 @@ func (r *mongoRepository) FindClient(name string) (*client.Client, error) {
 	return client, nil
 }
 
-func (r *mongoRepository) CreateClient(client *client.Client) error {
+func (r *mongoRepository) CreateClient(client *Entities.Client) error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	collection := r.client.Database(r.Config.Database).Collection("clients_collection")
@@ -96,7 +95,7 @@ func (r *mongoRepository) CreateClient(client *client.Client) error {
 	return nil
 }
 
-func (r *mongoRepository) CreatePolicy(policy *policy.Policy) error {
+func (r *mongoRepository) CreatePolicy(policy *Entities.Policy) error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	collection := r.client.Database(r.Config.Database).Collection("policy_collection")
@@ -109,10 +108,10 @@ func (r *mongoRepository) CreatePolicy(policy *policy.Policy) error {
 	return nil
 }
 
-func (r *mongoRepository) FindPolicy(name string) (*policy.Policy, error) {
+func (r *mongoRepository) FindPolicy(name string) (*Entities.Policy, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
-	policy := &policy.Policy{}
+	policy := &Entities.Policy{}
 	collection := r.client.Database(r.Config.Database).Collection("policy_collection")
 	filter := bson.M{"policyname": name}
 	err := collection.FindOne(ctx, filter).Decode(&policy)
@@ -125,7 +124,7 @@ func (r *mongoRepository) FindPolicy(name string) (*policy.Policy, error) {
 	return policy, nil
 
 }
-func (r *mongoRepository) UpdatePolicy(name string, policy *policy.Policy) error {
+func (r *mongoRepository) UpdatePolicy(name string, policy *Entities.Policy) error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	collection := r.client.Database(r.Config.Database).Collection("policy_collection")
@@ -153,7 +152,7 @@ func (r *mongoRepository) DeletePolicy(name string) error {
 	return nil
 }
 
-func (r *mongoRepository) UpdateClient(name string, client *client.Client) error {
+func (r *mongoRepository) UpdateClient(name string, client *Entities.Client) error {
 	ctx, cancel := context.WithTimeout(context.Background(), r.timeout)
 	defer cancel()
 	collection := r.client.Database(r.Config.Database).Collection("clients_collection")
