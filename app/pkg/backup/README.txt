@@ -1,58 +1,29 @@
 Backup Service
 
 backupService will be in charge of performing and creating backups. It will communicate with the Persistence and Broker repositories and can:
-    - Create policies
-    - Edit policies
-    - Delete polices
-    - Run Policies
+    - Start Backup Run
+    - View Backup Runs
 
-The Interfaces are as follows:
-    - CreatePolicy
-    - EditPolicy
-    - DeletePolicy
-    - TriggerPolicyRun
-    - BackupChannel (Returns: a Channel)
-        * The channel is used to open up a connection between the RabbitConsumer
+There are two interfaces:
+    - Interface 1
+        * TriggerBackupRun(Policy Name)
+        * ViewBackupRuns()
+    - Interface 2
+        * BackupExternalCommunication (Returns: a Channel)
+            * The channel is used to open up a connection between the ExternalConsumer
 
 
-Create Policies
- - When a policy is created it will take the following attributes:
-    * Name (String)
-    * Clients (List)
-    * Retention_Time (Integer)
-    * Runs (List)
-    * Type - Two options (String): 
-        - Full: Just full backups. No Incremental
-        - Incremental: Both Incremental and Full
-    * Scale - Scale can be set to:
-        - Day: If set to Day then the schedules below will be determined in Hours
-        - Week: If set to Week then the schedules bellow will be determined in Days
-        - Month: If se to Month then the schedules bellow will be determined in Weeks
-    * Full_Backup_Schedule - Lists out the Full schedule as determined by the scale
-    * Integer_Backup_schedule - Lists out the Incremental the schedule as determined by the scale
-- After the creation of the policy it will be inputted into the Database via Persistence repository
-- Once inputted in database an event will be called to the ClientManagment service wich will inform the relevent clients to update route_key_bindings to new policy
 
-Edit Policies
- - Similar to creation but will contain the following:
-    * Policy Name
-    * List of attributes to be changed and the changes in them. 
-- If clients have been added/removed then the ClientManagment service will be informed
-
-Delete Policies
-- Will take the Policy Name and do the following:
-    * will query and retrieve from the database the clients associated with the policy.
-    * Will create an event for the ClientManagment service to remove the route_key_bindings for that policy
-    * Will delete the policy from the database
-
-Run Policies
-This is the largest and most complex function as it will run and manage the backup process. It is called if either the user manually or the queryBackupService calls the TriggerPolicyRun method
+TriggerBackupRun(Policy Name)
+    - Takes a Policy Name as input
+    - Returns a Channel
+This is the largest and most complex function as it will run and manage the backup process. It is called by either the user manually through the UI or the queryBackupService calls the TriggerBackupRun method
 The steps are as follows:
-    * Retrieve the following from thePersistenceRepository:
+    * Query PersistenceRepository for information regarding the inputted policy
         - Type of backup to be performed
         - The clients to run
     * After this it will then call the BrokerRepository BackupRun Interface function, passing through the policy name.
-    * When the BackupChannel method is called for the first time it returns a channel. This opens up communication between the RabbitConsumer and the service.
+    * When the BackupExternalCommunication method is called for the first time it returns a channel. This opens up communication between the RabbitConsumer and the service.
     * Models are initialised to hold data:
         - ClientFile struct: There is one for each file. These are created upon receipt of Client Job Message. Initialy placed in ClientJob map. 
         - ClientRun sturct: There will be one per client in the policy. Will hold ClientFile structs that have been confirmed, as well as a status, which is initially set to false

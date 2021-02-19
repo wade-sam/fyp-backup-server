@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	comms "github.com/wade-sam/fyp-backup-server/client_communication"
+	comms "github.com/wade-sam/fyp-backup-server/externalConsumer"
 	client "github.com/wade-sam/fyp-backup-server/pkg/Client"
 	"github.com/wade-sam/fyp-backup-server/pkg/Entities"
 	"github.com/wade-sam/fyp-backup-server/pkg/policy"
@@ -24,7 +24,7 @@ func main() {
 	fmt.Println(serviceRabbitRepo)
 	clientService := client.NewClientService(servicePersistentRepo, serviceRabbitRepo)
 	policyService := policy.NewPolicyService(servicePersistentRepo)
-	err = comms.Initialise(clientService, connection)
+	comms.Initialise(clientService, connection)
 	clientstruct := Entities.Client{
 		Clientname:   "jackie boy",
 		Consumername: "host1",
