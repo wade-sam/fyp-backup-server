@@ -3,13 +3,14 @@ Backup Service
 backupService will be in charge of performing and creating backups. It will communicate with the Persistence and Broker repositories and can:
     - Start Backup Run
     - View Backup Runs
+    - Cancel Running BackupRuns (optinal only after everything else)
 
 There are two interfaces:
     - Interface 1
         * TriggerBackupRun(Policy Name)
         * ViewBackupRuns()
     - Interface 2
-        * BackupExternalCommunication (Returns: a Channel)
+        * BackupExternalCommunication (Returns: a Channel) MOST LIKELY CHANGE TO EVENT BUS
             * The channel is used to open up a connection between the ExternalConsumer
 
 
