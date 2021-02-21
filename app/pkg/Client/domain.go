@@ -14,36 +14,50 @@ var (
 	ErrClientNotFound = errors.New("Client Not Found")
 )
 
-type clientService struct {
+type internalClientHandler struct {
+	clientRepo  ClientRepository
+	clientsRepo ClientManageRepository
+}
+
+type externalClientHandler struct {
 	clientRepo  ClientRepository
 	clientsRepo ClientManageRepository
 }
 
 var validate = validator.New()
 
-func NewClientService(clientRepo ClientRepository, clientMRepo ClientManageRepository) ClientService {
-	return &clientService{
-		clientRepo,
-		clientMRepo,
-	}
+func NewClientService(clientRepo ClientRepository, clientMRepo ClientManageRepository) (InternalClientService, ExternalClientService) {
+	return &internalClientHandler{
+			clientRepo,
+			clientMRepo,
+		}, &externalClientHandler{
+			clientRepo,
+			clientMRepo,
+		}
 }
 
-func (c *clientService) FindClient(name string) (*Entities.Client, error) {
+func (c *externalClientHandler) DirectoryScanResult(directory []string) {}
+
+func (c *externalClientHandler) ConfigRequest(client string) {}
+
+func (c *externalClientHandler) NewClient(config string) {}
+
+func (c *internalClientHandler) FindClient(name string) (*Entities.Client, error) {
 	return c.clientRepo.FindClient(name)
 }
 
-func (c *clientService) CreateClient(client *Entities.Client) error {
+func (c *internalClientHandler) CreateClient(client *Entities.Client) error {
 	if err := validate.Struct(client); err != nil {
 		return errs.Wrap(ErrClientInvalid, "service.Client.Create")
 	}
 	return c.clientRepo.CreateClient(client)
 }
 
-func (p *clientService) UpdateClient(name string, client *Entities.Client) error {
+func (p *internalClientHandler) UpdateClient(name string, client *Entities.Client) error {
 	return p.clientRepo.UpdateClient(name, client)
 }
 
-func (p *clientService) DeleteClient(name string) error {
+func (p *internalClientHandler) DeleteClient(name string) error {
 	err := p.clientRepo.DeleteClient(name)
 	if err != nil {
 		return err
@@ -51,7 +65,7 @@ func (p *clientService) DeleteClient(name string) error {
 	return nil
 }
 
-func (p *clientService) ConnectClient() error {
+func (p *internalClientHandler) ConnectClient() error {
 	c := make(chan int)
 	p.clientsRepo.ConnectClient(c)
 	return nil

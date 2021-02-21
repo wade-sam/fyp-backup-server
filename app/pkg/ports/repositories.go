@@ -13,3 +13,7 @@ type PersistentRepository interface {
 type BrokerRepository interface {
 	client.ClientManageRepository
 }
+
+type ClientCommunication interface {
+	client.ExternalClientService
+}

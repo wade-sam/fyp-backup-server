@@ -1,12 +1,15 @@
-package client_communication
+package ExternalConsumer
 
 import (
 	"log"
 	"time"
 
 	"github.com/streadway/amqp"
-	"github.com/wade-sam/fyp-backup-server/pkg/client"
+	client "github.com/wade-sam/fyp-backup-server/pkg/Client"
+	//"github.com/wade-sam/fyp-backup-server/pkg/client"
 )
+
+//**Route-key: Type.Policy.DeviceName
 
 type ConsumerConfig struct {
 	ExchangeName string
@@ -20,17 +23,23 @@ type ConsumerConfig struct {
 	}
 }
 
-func Initialise(clientService client.ClientService, rabbitRepo *amqp.Connection) error {
+func Initialise(clientService client.ExternalClientService, connection *amqp.Connection) {
 
 	consumerconfig := ConsumerConfig{
 		ExchangeName: "main",
 		ExchangeType: "topic",
-		RoutingKey:   "new.none.none",
-		QueueName:    "general",
-		ConsumerName: "host1",
+		RoutingKey:   "#.backupserver",
+		QueueName:    "backupserver",
+		ConsumerName: "backupserver",
 	}
 	consumerconfig.Reconnect.MaxAttempt = 60
 	consumerconfig.Reconnect.Interval = 1 * time.Second
+
+	consumerInstance := NewConsumer(consumerconfig, connection)
+	if err := consumerInstance.Start(); err != nil {
+		log.Fatalln("Unable to start consumer", err)
+	}
+	select {}
 }
 
 type Consumer struct {
