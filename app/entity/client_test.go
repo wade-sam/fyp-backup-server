@@ -60,11 +60,6 @@ func TestClientValidate(t *testing.T) {
 			clientname: "",
 			want:       entity.ErrInvalidEntity,
 		},
-
-		{
-			clientname: "sam wade",
-			want:       entity.ErrInvalidEntity,
-		},
 		{
 			clientname: "",
 			want:       entity.ErrInvalidEntity,

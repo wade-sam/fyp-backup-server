@@ -14,3 +14,4 @@ var ErrInvalidBackupPlan = errors.New("Invalid backup plan")
 var ErrNoNewClient = errors.New("There are no new clients")
 
 var ErrClientCannotBeDeleted = errors.New("This client could not be deleted, please check whether it is associated with any policies")
+var ErrPolicyCantBeRemoved = errors.New("This policy could not be deleted from the client")

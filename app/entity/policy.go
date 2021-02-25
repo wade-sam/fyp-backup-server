@@ -45,7 +45,6 @@ func (p *Policy) AddBackupPlan(fullbackup, incrementalbackup []string) error {
 	} else {
 		return ErrInvalidBackupPlan
 	}
-	return ErrInvalidBackupPlan
 }
 
 func checkTwoForOverlappingDays(fb []string, ib []string) error {

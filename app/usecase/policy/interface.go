@@ -10,14 +10,9 @@ type Reader interface {
 }
 
 type Writer interface {
-	Create(policy *entity.Policy) error
+	Create(policy *entity.Policy) (*entity.Policy, error)
 	Update(policy *entity.Policy) error
 	Delete(name string) error
-}
-
-type Communication interface {
-	AddClient(client, policy string) error
-	RemoveClient(client, policy string) error
 }
 
 /* TODO
@@ -30,15 +25,12 @@ TODO Choices to make:
 type Repository interface {
 	Reader
 	Writer
-	Communication
 }
 
 type UseCase interface {
 	GetPolicy(name string) (*entity.Policy, error)
-	ListPolicies(name string) ([]*entity.Policy, error)
-	CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup, clients []string) error
+	ListPolicies() ([]*entity.Policy, error)
+	CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup, clients []string) (*entity.Policy, error)
 	UpdatePolicy(policy *entity.Policy) error
-	AddClientToPolicy(client, policy string) error
-	RemoveClientFromPolicy(client, policy string) error
 	DeletePolicy(name string) error
 }
