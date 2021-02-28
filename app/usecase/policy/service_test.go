@@ -6,13 +6,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/wade-sam/fyp-backup-server/entity"
 	"github.com/wade-sam/fyp-backup-server/usecase/policy"
-	"github.com/wade-sam/fyp-backup-server/usecase/policy/mock"
+	//"github.com/wade-sam/fyp-backup-server/usecase/policy/mock"
 )
 
 func newFixturePolicy() *entity.Policy {
 	return &entity.Policy{
+		PolicyID:   entity.NewID(),
 		Policyname: "wednesday backup",
-		Clients:    []string{"sam"},
+		Clients:    []entity.ID{entity.NewID()},
 		Retention:  10,
 		Type:       "full",
 		State:      "active",
@@ -28,93 +29,74 @@ func listPolicies() []*entity.Policy {
 	}
 	return lists
 }
+
 func Test_CreatePolicy(t *testing.T) {
+	repo := policy.NewPolicyHolder()
+	testService := policy.NewService(repo)
 	p := newFixturePolicy()
-	mockRepo := new(mock.MockRepository)
-	mockRepo.On("Create", p).Return(p, nil)
-	testService := policy.NewService(mockRepo)
-	result, err := testService.CreatePolicy(p.Policyname, p.Type, p.Retention, p.Fullbackup, p.IncBackup, p.Clients)
-	mockRepo.AssertExpectations(t)
+	_, err := testService.CreatePolicy(p.Policyname, p.Type, p.Retention, p.Fullbackup, p.IncBackup, p.Clients)
 	assert.Nil(t, err)
-	assert.Equal(t, result, p)
 
-	mockRepo = new(mock.MockRepository)
-	mockRepo.On("Create", p).Return(p, nil)
-	testService = policy.NewService(mockRepo)
-	result, err = testService.CreatePolicy("", p.Type, p.Retention, p.Fullbackup, p.IncBackup, p.Clients)
-	assert.Nil(t, result)
-	assert.Equal(t, err, entity.ErrInvalidEntity)
 }
-
 func Test_GetPolicy(t *testing.T) {
+	repo := policy.NewPolicyHolder()
+	testService := policy.NewService(repo)
 	p := newFixturePolicy()
-	mockRepo := new(mock.MockRepository)
-	mockRepo.On("Get", p.Policyname).Return(p, nil)
-	testService := policy.NewService(mockRepo)
-	result, err := testService.GetPolicy(p.Policyname)
-	mockRepo.AssertExpectations(t)
+	id, _ := testService.CreatePolicy(p.Policyname, p.Type, p.Retention, p.Fullbackup, p.IncBackup, p.Clients)
+	result, err := testService.GetPolicy(id)
 	assert.Nil(t, err)
-	assert.Equal(t, result, p)
-
-	mockRepo = new(mock.MockRepository)
-	mockRepo.On("Get", p.Policyname).Return(nil, entity.ErrNotFound)
-	testService = policy.NewService(mockRepo)
-	result, err = testService.GetPolicy(p.Policyname)
+	assert.Equal(t, p.Policyname, result.Policyname)
+	result, err = testService.GetPolicy(entity.NewID())
 	assert.Nil(t, result)
 	assert.Equal(t, err, entity.ErrNotFound)
+
 }
 
 func Test_UpdatePolicy(t *testing.T) {
+	repo := policy.NewPolicyHolder()
+	testService := policy.NewService(repo)
 	p := newFixturePolicy()
-	d := entity.Policy{
-		Clients:    []string{"sam"},
-		Retention:  10,
-		Type:       "full",
-		State:      "active",
-		Fullbackup: []string{"Monday", "Thursday", "Sunday"},
-		IncBackup:  []string{},
-	}
-	mockRepo := new(mock.MockRepository)
-	mockRepo.On("Update", p).Return(nil)
-	testService := policy.NewService(mockRepo)
-	err := testService.UpdatePolicy(p)
-	mockRepo.AssertExpectations(t)
+	id, _ := testService.CreatePolicy(p.Policyname, p.Type, p.Retention, p.Fullbackup, p.IncBackup, p.Clients)
+	get, err := testService.GetPolicy(id)
+	get.Policyname = "Thursday's Backup"
+	get.Clients = append(p.Clients, entity.NewID())
+	err = testService.UpdatePolicy(get)
 	assert.Nil(t, err)
-	err = testService.UpdatePolicy(&d)
-	mockRepo.AssertExpectations(t)
-	assert.Equal(t, entity.ErrInvalidEntity, err)
-}
-func Test_ListPolicy(t *testing.T) {
-	//p := newFixturePolicy()
-	policies := listPolicies()
-	mockRepo := new(mock.MockRepository)
-	mockRepo.On("List").Return(policies, nil)
-	testService := policy.NewService(mockRepo)
-	result, err := testService.ListPolicies()
-	mockRepo.AssertExpectations(t)
+	updated, err := testService.GetPolicy(id)
 	assert.Nil(t, err)
-	assert.Equal(t, result, policies)
-	mockRepo2 := new(mock.MockRepository)
-	mockRepo2.On("List").Return(nil, entity.ErrNotFound)
-	testService = policy.NewService(mockRepo2)
-	result, err = testService.ListPolicies()
-	assert.Equal(t, entity.ErrNotFound, err)
-	assert.Nil(t, result)
+	assert.Equal(t, "Thursday's Backup", updated.Policyname)
+	assert.NotNil(t, get.Clients, updated.Clients)
 }
 
 func Test_DeletePolicy(t *testing.T) {
-	p := newFixturePolicy()
-	mockRepo := new(mock.MockRepository)
-	mockRepo.On("Delete", p.Policyname).Return(nil)
-	mockRepo.On("Get", p.Policyname).Return(p, nil)
-	testService := policy.NewService(mockRepo)
-	err := testService.DeletePolicy(p.Policyname)
-	mockRepo.AssertExpectations(t)
-	assert.Nil(t, err)
-	mockRepo2 := new(mock.MockRepository)
-	mockRepo2.On("Get", p.Policyname).Return(p, entity.ErrNotFound)
-	testService = policy.NewService(mockRepo2)
-	err = testService.DeletePolicy(p.Policyname)
+	repo := policy.NewPolicyHolder()
+	testService := policy.NewService(repo)
+	p1 := newFixturePolicy()
+	p2 := newFixturePolicy()
+	p1id, _ := testService.CreatePolicy(p1.Policyname, p1.Type, p1.Retention, p1.Fullbackup, p1.IncBackup, p1.Clients)
+	err := testService.DeletePolicy(p2.PolicyID)
 	assert.Equal(t, entity.ErrNotFound, err)
+	err = testService.DeletePolicy(p1id)
+	assert.Nil(t, err)
+	_, err = testService.GetPolicy(p1id)
+	assert.Equal(t, entity.ErrNotFound, err)
+
+}
+
+func Test_ListClients(t *testing.T) {
+	repo := policy.NewPolicyHolder()
+	testService := policy.NewService(repo)
+	p1 := newFixturePolicy()
+	p2 := newFixturePolicy()
+	plist, err := testService.ListPolicies()
+	assert.Equal(t, entity.ErrNotFound, err)
+	_, _ = testService.CreatePolicy(p1.Policyname, p1.Type, p1.Retention, p1.Fullbackup, p1.IncBackup, p1.Clients)
+	plist, err = testService.ListPolicies()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(plist))
+	_, _ = testService.CreatePolicy(p2.Policyname, p2.Type, p2.Retention, p2.Fullbackup, p2.IncBackup, p2.Clients)
+	plist2, err := testService.ListPolicies()
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(plist2))
 
 }

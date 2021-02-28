@@ -12,15 +12,15 @@ func NewService(r Repository) *Service {
 	}
 }
 
-func (s *Service) CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup, clients []string) (*entity.Policy, error) {
+func (s *Service) CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup []string, clients []entity.ID) (entity.ID, error) {
 	policy, err := entity.NewPolicy(policyname, backupType, retention, fullbackup, incrementalbackup, clients)
 	if err != nil {
-		return nil, err
+		return policy.PolicyID, err
 	}
 	return s.repo.Create(policy)
 }
 
-func (s *Service) GetPolicy(name string) (*entity.Policy, error) {
+func (s *Service) GetPolicy(name entity.ID) (*entity.Policy, error) {
 	return s.repo.Get(name)
 }
 
@@ -43,7 +43,7 @@ func (s *Service) UpdatePolicy(policy *entity.Policy) error {
 	return s.repo.Update(policy)
 }
 
-func (s *Service) DeletePolicy(name string) error {
+func (s *Service) DeletePolicy(name entity.ID) error {
 	p, err := s.GetPolicy(name)
 	if p == nil {
 		return entity.ErrNotFound

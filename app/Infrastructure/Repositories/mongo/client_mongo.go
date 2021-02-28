@@ -1,4 +1,4 @@
-package Mongo
+package mongo
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/wade-sam/fyp-backup-server/Infrastructure/Repositories/Mongo/objects"
 	"github.com/wade-sam/fyp-backup-server/entity"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -29,23 +28,24 @@ func NewClientMongo(db *mongo.Client, database, collection string, timeout int) 
 	}
 }
 
-func (c *ClientMongo) Create(client *entity.Client) (*entity.Client, error) {
+func (c *ClientMongo) Create(client *entity.Client) (entity.ID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	collection := c.db.Database(c.database).Collection(c.collection)
-	b_client := &objects.Client{
-		Clientname:    client.Clientname,
-		Policies:      client.Policies,
-		Directorytree: client.Directorytree,
-		Ignorepath:    client.Ignorepath,
-		Backups:       client.Backups,
-	}
-	_, err := collection.InsertOne(ctx, b_client)
+	// b_client := &objects.Client{
+	// 	ConsumerID:    client.ConsumerID,
+	// 	Clientname:    client.Clientname,
+	// 	Policies:      client.Policies,
+	// 	Directorytree: client.Directorytree,
+	// 	Ignorepath:    client.Ignorepath,
+	// 	Backups:       client.Backups,
+	// }
+	_, err := collection.InsertOne(ctx, client)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "repository.CreateClient")
+		return client.ConsumerID, errors.Wrap(err, "repository.CreateClient")
 	}
-	return client, nil
+	return client.ConsumerID, nil
 }
 
 func (c *ClientMongo) Update(client *entity.Client) error {
@@ -53,18 +53,18 @@ func (c *ClientMongo) Update(client *entity.Client) error {
 	defer cancel()
 	collection := c.db.Database(c.database).Collection("clients_collection")
 
-	b_client := &objects.Client{
-		Clientname:    client.Clientname,
-		Policies:      client.Policies,
-		Directorytree: client.Directorytree,
-		Ignorepath:    client.Ignorepath,
-		Backups:       client.Backups,
-	}
-
-	result, err := collection.UpdateMany(
+	// b_client := &objects.Client{
+	// 	ConsumerID:    client.ConsumerID,
+	// 	Clientname:    client.Clientname,
+	// 	Policies:      client.Policies,
+	// 	Directorytree: client.Directorytree,
+	// 	Ignorepath:    client.Ignorepath,
+	// 	Backups:       client.Backups,
+	// }
+	result, err := collection.UpdateOne(
 		ctx,
-		bson.M{"clientname": b_client.Clientname},
-		bson.M{"$set": b_client},
+		bson.M{"_id": client.ConsumerID},
+		bson.M{"$set": client},
 	)
 	if err != nil {
 		return errors.Wrap(err, "repository.Policy.Update")
@@ -73,37 +73,34 @@ func (c *ClientMongo) Update(client *entity.Client) error {
 	return nil
 }
 
-func (c *ClientMongo) Delete(name string) error {
+func (c *ClientMongo) Delete(name entity.ID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	collection := c.db.Database(c.database).Collection("clients_collection")
-	_, err := collection.DeleteOne(ctx, bson.M{"clientname": name})
+	_, err := collection.DeleteOne(ctx, bson.M{"_id": name})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *ClientMongo) Get(name string) (*entity.Client, error) {
-	b_client := objects.Client{}
-	client := &entity.Client{}
-
+func (c *ClientMongo) Get(id entity.ID) (*entity.Client, error) {
+	var client *entity.Client
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	collection := c.db.Database(c.database).Collection("clients_collection")
-	filter := bson.M{"clientname": name}
-	err := collection.FindOne(ctx, filter).Decode(&b_client)
+	//filter := bson.M{"_id": id}
+	response, err := collection.Find(ctx, bson.M{"_id": id})
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, errors.Wrap(err, "repository.FindClient")
 		}
 		return nil, errors.Wrap(err, "Repository.Client.Find")
 	}
-	client.Clientname = b_client.Clientname
-	client.Policies = b_client.Policies
-	client.Directorytree = b_client.Directorytree
-	client.Ignorepath = b_client.Ignorepath
-	client.Backups = b_client.Backups
+	if err = response.All(ctx, &client); err != nil {
+		return nil, entity.ErrNotFound
+	}
+
 	return client, nil
 }
 
@@ -112,5 +109,12 @@ func (c *ClientMongo) List() ([]*entity.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	collection := c.db.Database(c.database).Collection("clients_collection")
-	cursor, err := collection.Find(ctx)
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, entity.ErrCouldNotAddItem
+	}
+	if err = cursor.All(ctx, clients); err != nil {
+		return nil, entity.ErrCouldNotAddItem
+	}
+	return clients, nil
 }

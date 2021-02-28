@@ -6,28 +6,35 @@ type Service struct {
 	repo Repository
 }
 
-func NewService(r Repository) *Service {
+func NewService(p Repository) *Service {
 	return &Service{
-		repo: r,
+		repo: p,
 	}
 }
 
 //TODO: re-check how we want client created. Just a name? or is a filescan required. Should I add a policy? If so filescan should be required first
 
-func (s *Service) CreateClient(client *entity.Client) (*entity.Client, error) {
-	//client, err := entity.NewClient(client)
-	err := client.ValidateClient()
+func (s *Service) CreateClient(clientname string, consumerID entity.ID) (entity.ID, error) {
+	client, err := entity.NewClient(clientname, consumerID)
+	err = client.ValidateClient()
 	if err != nil {
-		return nil, entity.ErrInvalidEntity
+		return client.ConsumerID, entity.ErrInvalidEntity
 	}
 	return s.repo.Create(client)
 }
 
-func (s *Service) GetClient(name string) (*entity.Client, error) {
+func (s *Service) GetClient(name entity.ID) (*entity.Client, error) {
 	return s.repo.Get(name)
 }
 
 func (s *Service) ListClients() ([]*entity.Client, error) {
+	result, err := s.repo.List()
+	if result == nil {
+		return nil, entity.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
 	return s.repo.List()
 }
 
@@ -36,10 +43,64 @@ func (s *Service) UpdateClient(client *entity.Client) error {
 	if err != nil {
 		return entity.ErrInvalidEntity
 	}
-	return s.repo.Update(client)
+	r, err := s.GetClient(client.ConsumerID)
+	if r == nil {
+		return entity.ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	err = s.repo.Update(client)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (s *Service) DeleteClient(name string) error {
+/*
+	   To check for differences in the lists you have to compare both ways. r1 contains the policies to remove
+	   from the client and r2 contains the policies to add to the client
+
+	policiesRemove, _ := ComparePolicyLists(client.Policies, r.Policies)
+	policiesAdd, _ := ComparePolicyLists(r.Policies, client.Policies)
+	if len(policiesRemove) > 0 {
+		err = s.dispatcher.RemovePolicyFromClient(client.ConsumerID, policiesRemove)
+		if err != nil {
+			return err
+		}
+	}
+	if len(policiesAdd) > 0 {
+		err = s.dispatcher.AddPolicyToClient(client.ConsumerID, policiesAdd)
+		if err != nil {
+			return err
+		}
+	}
+	err = s.persistence.Update(client)
+	if err != nil {
+		return err
+	}
+	return nil
+
+
+//Compares the two lists for differences in policies and adds them to a differences list which is returned
+func ComparePolicyLists(l1, l2 []entity.ID) ([]entity.ID, error) {
+	differences := []entity.ID{}
+	for _, i := range l1 {
+		for _, j := range l2 {
+			if i == j {
+				break
+			}
+		}
+		differences = append(differences, i)
+	}
+	if len(differences) == 0 {
+		return nil, entity.ErrNoNewItem
+	}
+	return differences, nil
+}
+*/
+
+func (s *Service) DeleteClient(name entity.ID) error {
 	c, err := s.GetClient(name)
 	if c == nil {
 		return entity.ErrNotFound

@@ -1,8 +1,9 @@
 package entity
 
 type Policy struct {
+	PolicyID   ID
 	Policyname string
-	Clients    []string
+	Clients    []ID
 	Retention  int
 	State      string
 	Type       string
@@ -10,13 +11,15 @@ type Policy struct {
 	IncBackup  []string
 }
 
-func NewPolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup, clients []string) (*Policy, error) {
+func NewPolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup []string, clients []ID) (*Policy, error) {
 	p := &Policy{
+		PolicyID:   NewID(),
 		Policyname: policyname,
 		Clients:    clients,
 		Retention:  retention,
 		Type:       backupType,
 	}
+
 	p.AddState()
 	err := p.AddBackupPlan(fullbackup, incrementalbackup)
 	if err != nil {
@@ -69,7 +72,7 @@ func checkBackupPlan(backup []string) error {
 	return nil
 }
 
-func (p *Policy) AddClient(client string) error {
+func (p *Policy) AddClient(client ID) error {
 	_, err := p.GetClient(client)
 	if err == nil {
 		return ErrClientAlreadyAdded
@@ -79,7 +82,7 @@ func (p *Policy) AddClient(client string) error {
 	return nil
 }
 
-func (p *Policy) RemoveClient(client string) error {
+func (p *Policy) RemoveClient(client ID) error {
 	for i, j := range p.Clients {
 		if j == client {
 			p.Clients = append(p.Clients[:i], p.Clients[i+1:]...)
@@ -89,7 +92,7 @@ func (p *Policy) RemoveClient(client string) error {
 	return ErrNotFound
 }
 
-func (p *Policy) GetClient(client string) (string, error) {
+func (p *Policy) GetClient(client ID) (ID, error) {
 	for _, v := range p.Clients {
 		if v == client {
 			return client, nil

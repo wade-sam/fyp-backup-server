@@ -11,7 +11,7 @@ import (
 func TestNewPolicy(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	clients := []string{"sam"}
+	clients := []entity.ID{entity.NewID()}
 	p, err := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
 	assert.Nil(t, err)
 	assert.Equal(t, p.Policyname, "Wednesday's backup")
@@ -26,9 +26,9 @@ func TestNewPolicy(t *testing.T) {
 func TestAddClient(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	clients := []string{"sam"}
+	clients := []entity.ID{entity.NewID()}
 	p, _ := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
-	client := "jack"
+	client := entity.NewID()
 	err := p.AddClient(client)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(p.Clients))
@@ -39,11 +39,12 @@ func TestAddClient(t *testing.T) {
 func TestRemoveClient(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	clients := []string{"sam"}
+	client := entity.NewID()
+	clients := []entity.ID{client}
 	p, _ := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
-	err := p.RemoveClient("jack")
+	err := p.RemoveClient(entity.NewID())
 	assert.Equal(t, entity.ErrNotFound, err)
-	client := "jack"
+	//client := entity.NewID()
 	_ = p.AddClient(client)
 	err = p.RemoveClient(client)
 	assert.Nil(t, err)
@@ -52,24 +53,26 @@ func TestRemoveClient(t *testing.T) {
 func TestGetClient(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	clients := []string{"sam"}
+	client := entity.NewID()
+	clients := []entity.ID{client}
 	p, _ := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
-	client, err := p.GetClient("sam")
+	client, err := p.GetClient(client)
 	assert.Nil(t, err)
-	assert.Equal(t, client, "sam")
-	_, err = p.GetClient("jack")
+	assert.Equal(t, client, client)
+	_, err = p.GetClient(entity.NewID())
 	assert.Equal(t, entity.ErrNotFound, err)
 }
 
 func TestGetState(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	clients := []string{"sam"}
+	client := entity.NewID()
+	clients := []entity.ID{client}
 	p, _ := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
 	state, err := p.GetState()
 	assert.Nil(t, err)
 	assert.Equal(t, state, "active")
-	err = p.RemoveClient("sam")
+	err = p.RemoveClient(client)
 	p.AddState()
 	state, err = p.GetState()
 	assert.Nil(t, err)
@@ -79,7 +82,7 @@ func TestGetState(t *testing.T) {
 func testPolicyValidate(t *testing.T) {
 	type test struct {
 		Policyname string
-		Clients    []string
+		Clients    []entity.ID
 		Retention  int
 		State      string
 		Type       string
@@ -90,7 +93,7 @@ func testPolicyValidate(t *testing.T) {
 	tests := []test{
 		{
 			Policyname: "wednesday backup",
-			Clients:    []string{"sam"},
+			Clients:    []entity.ID{entity.NewID()},
 			Retention:  10,
 			Type:       "full",
 			Fullbackup: []string{"Monday", "Thursday", "Sunday"},
@@ -99,7 +102,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "",
-			Clients:    []string{"sam"},
+			Clients:    []entity.ID{entity.NewID()},
 			Retention:  10,
 			Type:       "full",
 			Fullbackup: []string{"Monday", "Thursday", "Sunday"},
@@ -108,7 +111,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []string{"sam"},
+			Clients:    []entity.ID{entity.NewID()},
 			Retention:  0,
 			Type:       "full",
 			Fullbackup: []string{"Monday", "Thursday", "Sunday"},
@@ -117,7 +120,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []string{"sam"},
+			Clients:    []entity.ID{entity.NewID()},
 			Retention:  10,
 			Type:       "full",
 			Fullbackup: []string{},
@@ -126,7 +129,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []string{"sam"},
+			Clients:    []entity.ID{entity.NewID()},
 			Retention:  10,
 			Type:       "both",
 			Fullbackup: []string{},
@@ -135,7 +138,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []string{"sam"},
+			Clients:    []entity.ID{entity.NewID()},
 			Retention:  10,
 			Type:       "both",
 			Fullbackup: []string{"Sunday"},
@@ -144,7 +147,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []string{"sam"},
+			Clients:    []entity.ID{entity.NewID()},
 			Retention:  10,
 			Type:       "",
 			Fullbackup: []string{},
@@ -153,7 +156,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []string{"sam"},
+			Clients:    []entity.ID{entity.NewID()},
 			Retention:  10,
 			Type:       "both",
 			Fullbackup: []string{"Monday"},
@@ -162,7 +165,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []string{"sam"},
+			Clients:    []entity.ID{entity.NewID()},
 			Retention:  10,
 			Type:       "both",
 			Fullbackup: []string{},

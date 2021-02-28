@@ -5,14 +5,14 @@ import (
 )
 
 type Reader interface {
-	Get(name string) (*entity.Client, error)
+	Get(name entity.ID) (*entity.Client, error)
 	List() ([]*entity.Client, error)
 }
 
 type Writer interface {
-	Create(client *entity.Client) (*entity.Client, error)
+	Create(client *entity.Client) (entity.ID, error)
 	Update(client *entity.Client) error
-	Delete(name string) error
+	Delete(name entity.ID) error
 }
 
 /* TODO
@@ -28,9 +28,10 @@ type Repository interface {
 }
 
 type UseCase interface {
-	GetClient(name string) (*entity.Client, error)
+	GetClient(name entity.ID) (*entity.Client, error)
 	ListClients() ([]*entity.Client, error)
-	CreateClient(client *entity.Client) (*entity.Client, error)
+	CreateClient(client *entity.Client) (entity.ID, error)
 	UpdateClient(client *entity.Client) error
-	DeleteClient(name string) error
+	DeleteClient(name entity.ID) error
+	SearchNewClient() (entity.ID, error)
 }
