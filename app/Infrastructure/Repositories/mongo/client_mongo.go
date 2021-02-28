@@ -105,7 +105,7 @@ func (c *ClientMongo) Get(id entity.ID) (*entity.Client, error) {
 }
 
 func (c *ClientMongo) List() ([]*entity.Client, error) {
-	clients := []*entity.Client{}
+	var clients []*entity.Client
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	collection := c.db.Database(c.database).Collection("clients_collection")
@@ -113,8 +113,8 @@ func (c *ClientMongo) List() ([]*entity.Client, error) {
 	if err != nil {
 		return nil, entity.ErrCouldNotAddItem
 	}
-	if err = cursor.All(ctx, clients); err != nil {
-		return nil, entity.ErrCouldNotAddItem
+	if err = cursor.All(ctx, &clients); err != nil {
+		return nil, err
 	}
 	return clients, nil
 }
