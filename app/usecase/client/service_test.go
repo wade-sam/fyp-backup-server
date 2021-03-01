@@ -10,8 +10,9 @@ import (
 
 func newFixtureClient() *entity.Client {
 	return &entity.Client{
+		ConsumerID: "host1",
 		Clientname:    "sam's mackbook pro",
-		Policies:      []entity.ID{entity.NewID(), entity.NewID()},
+		Policies:      []string{"p1", "p2", "p3"},
 		Directorytree: []string{"/", "/home", "/home/sam"},
 		Ignorepath:    []string{"/home/test"},
 		Backups:       []string{},
@@ -43,7 +44,7 @@ func Test_GetClient(t *testing.T) {
 	result, err := testService.GetClient(id)
 	assert.Nil(t, err)
 	assert.Equal(t, p.Clientname, result.Clientname)
-	result, err = testService.GetClient(entity.NewID())
+	result, err = testService.GetClient("client2")
 	assert.Nil(t, result)
 	assert.Equal(t, err, entity.ErrNotFound)
 }
@@ -55,7 +56,7 @@ func Test_UpdateClient(t *testing.T) {
 	id, _ := testService.CreateClient(p.Clientname, p.ConsumerID)
 	get, err := testService.GetClient(id)
 	get.Clientname = "jack's MacBook Pro"
-	get.Policies = append(get.Policies, entity.NewID())
+	get.Policies = append(get.Policies, "p3")
 	err = testService.UpdateClient(get)
 	assert.Nil(t, err)
 	updated, err := testService.GetClient(id)
@@ -69,7 +70,7 @@ func Test_DeleteClient(t *testing.T) {
 	testService := client.NewService(repo)
 	p1 := newFixtureClient()
 	p2 := newFixtureClient()
-	p2.ConsumerID = entity.NewID()
+	p2.ConsumerID = "host2"
 	p1id, _ := testService.CreateClient(p1.Clientname, p1.ConsumerID)
 	err := testService.DeleteClient(p2.ConsumerID)
 	assert.Equal(t, entity.ErrNotFound, err)
@@ -85,8 +86,8 @@ func Test_ListClients(t *testing.T) {
 	testService := client.NewService(repo)
 	p1 := newFixtureClient()
 	p2 := newFixtureClient()
-	p1.ConsumerID = entity.NewID()
-	p2.ConsumerID = entity.NewID()
+	p1.ConsumerID = "host2"
+	p2.ConsumerID = "host3"
 	plist, err := testService.ListClients()
 	assert.Equal(t, entity.ErrNotFound, err)
 	_, _ = testService.CreateClient(p1.Clientname, p1.ConsumerID)

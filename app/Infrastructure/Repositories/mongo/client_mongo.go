@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/wade-sam/fyp-backup-server/entity"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -28,7 +29,7 @@ func NewClientMongo(db *mongo.Client, database, collection string, timeout int) 
 	}
 }
 
-func (c *ClientMongo) Create(client *entity.Client) (entity.ID, error) {
+func (c *ClientMongo) Create(client *entity.Client) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	collection := c.db.Database(c.database).Collection(c.collection)
@@ -40,12 +41,12 @@ func (c *ClientMongo) Create(client *entity.Client) (entity.ID, error) {
 	// 	Ignorepath:    client.Ignorepath,
 	// 	Backups:       client.Backups,
 	// }
-	_, err := collection.InsertOne(ctx, client)
-
+	insertResult, err := collection.InsertOne(ctx, client)
+	id := insertResult.InsertedID.(primitive.ObjectID).Hex()
 	if err != nil {
-		return client.ConsumerID, errors.Wrap(err, "repository.CreateClient")
+		return "", errors.Wrap(err, "repository.CreateClient")
 	}
-	return client.ConsumerID, nil
+	return id, nil
 }
 
 func (c *ClientMongo) Update(client *entity.Client) error {
@@ -73,7 +74,7 @@ func (c *ClientMongo) Update(client *entity.Client) error {
 	return nil
 }
 
-func (c *ClientMongo) Delete(name entity.ID) error {
+func (c *ClientMongo) Delete(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	collection := c.db.Database(c.database).Collection("clients_collection")
@@ -84,7 +85,7 @@ func (c *ClientMongo) Delete(name entity.ID) error {
 	return nil
 }
 
-func (c *ClientMongo) Get(id entity.ID) (*entity.Client, error) {
+func (c *ClientMongo) Get(id string) (*entity.Client, error) {
 	var client *entity.Client
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()

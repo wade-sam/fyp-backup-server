@@ -5,22 +5,22 @@ import (
 )
 
 type clientholder struct {
-	m map[entity.ID]*entity.Client
+	m map[string]*entity.Client
 }
 
 func NewClientHolder() *clientholder {
-	var p = map[entity.ID]*entity.Client{}
+	var p = map[string]*entity.Client{}
 	return &clientholder{
 		m: p,
 	}
 }
 
-func (r *clientholder) Create(client *entity.Client) (entity.ID, error) {
+func (r *clientholder) Create(client *entity.Client) (string, error) {
 	r.m[client.ConsumerID] = client
 	return client.ConsumerID, nil
 }
 
-func (r *clientholder) Get(p entity.ID) (*entity.Client, error) {
+func (r *clientholder) Get(p string) (*entity.Client, error) {
 	if r.m[p] == nil {
 		return nil, entity.ErrNotFound
 	}
@@ -35,7 +35,7 @@ func (r *clientholder) List() ([]*entity.Client, error) {
 	return d, nil
 }
 
-func (r *clientholder) Delete(id entity.ID) error {
+func (r *clientholder) Delete(id string) error {
 	if r.m[id] == nil {
 		return entity.ErrNotFound
 	}

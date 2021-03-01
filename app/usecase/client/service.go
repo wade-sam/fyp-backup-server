@@ -14,7 +14,7 @@ func NewService(p Repository) *Service {
 
 //TODO: re-check how we want client created. Just a name? or is a filescan required. Should I add a policy? If so filescan should be required first
 
-func (s *Service) CreateClient(clientname string, consumerID entity.ID) (entity.ID, error) {
+func (s *Service) CreateClient(clientname string, consumerID string) (string, error) {
 	client, err := entity.NewClient(clientname, consumerID)
 	err = client.ValidateClient()
 	if err != nil {
@@ -23,7 +23,7 @@ func (s *Service) CreateClient(clientname string, consumerID entity.ID) (entity.
 	return s.repo.Create(client)
 }
 
-func (s *Service) GetClient(name entity.ID) (*entity.Client, error) {
+func (s *Service) GetClient(name string) (*entity.Client, error) {
 	return s.repo.Get(name)
 }
 
@@ -83,8 +83,8 @@ func (s *Service) UpdateClient(client *entity.Client) error {
 
 
 //Compares the two lists for differences in policies and adds them to a differences list which is returned
-func ComparePolicyLists(l1, l2 []entity.ID) ([]entity.ID, error) {
-	differences := []entity.ID{}
+func ComparePolicyLists(l1, l2 []string) ([]string, error) {
+	differences := []string{}
 	for _, i := range l1 {
 		for _, j := range l2 {
 			if i == j {
@@ -100,7 +100,7 @@ func ComparePolicyLists(l1, l2 []entity.ID) ([]entity.ID, error) {
 }
 */
 
-func (s *Service) DeleteClient(name entity.ID) error {
+func (s *Service) DeleteClient(name string) error {
 	c, err := s.GetClient(name)
 	if c == nil {
 		return entity.ErrNotFound

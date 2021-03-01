@@ -2,53 +2,45 @@ package entity_test
 
 import (
 	"testing"
-
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/wade-sam/fyp-backup-server/entity"
 )
 
 func TestNewClient(t *testing.T) {
-	id := uuid.NewV4()
-	u, err := entity.NewClient("Sam's MacBook Pro", id)
+	u, err := entity.NewClient("Sam's MacBook Pro", "client1")
 	assert.Nil(t, err)
 	assert.Equal(t, u.Clientname, "Sam's MacBook Pro")
 }
 
 func TestAddPolicy(t *testing.T) {
-	id := uuid.NewV4()
-	u, _ := entity.NewClient("Sam's MacBook Pro", id)
+	u, _ := entity.NewClient("Sam's MacBook Pro", "client1")
 	//policy := "Wednesday Backup Run"
-	policyid := uuid.NewV4()
-	err := u.AddPolicy(policyid)
+	err := u.AddPolicy("p1")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(u.Policies))
-	err = u.AddPolicy(policyid)
+	err = u.AddPolicy("p1")
 	assert.Equal(t, entity.ErrPolicyAlreadyAdded, err)
 }
 
 func TestRemovePolicy(t *testing.T) {
-	id := uuid.NewV4()
-	u, _ := entity.NewClient("Sam's MacBook Pro", id)
-	policyid := uuid.NewV4()
-	err := u.RemovePolicy(policyid)
+	u, err := entity.NewClient("Sam's MacBook Pro", "client1")
+	err = u.RemovePolicy("p1")
 	assert.Equal(t, entity.ErrNotFound, err)
 	//policy := "Wednesday Backup Run"
-	_ = u.AddPolicy(policyid)
-	err = u.RemovePolicy(policyid)
+	_ = u.AddPolicy("p1")
+	err = u.RemovePolicy("p1")
 	assert.Nil(t, err)
 }
 
 func TestGetPolicy(t *testing.T) {
-	id := uuid.NewV4()
-	u, _ := entity.NewClient("Sam's MacBook Pro", id)
+	u, err := entity.NewClient("Sam's MacBook Pro", "client1")
 	//bpolicy := "Wednesday Backup Run"
-	policyid := uuid.NewV4()
+	policyid := "p1"
 	_ = u.AddPolicy(policyid)
 	policy, err := u.GetPolicy(policyid)
 	assert.Nil(t, err)
 	assert.Equal(t, policy, policyid)
-	policyid2 := uuid.NewV4()
+	policyid2 := "p2"
 	_, err = u.GetPolicy(policyid2)
 	assert.Equal(t, entity.ErrNotFound, err)
 
@@ -57,24 +49,24 @@ func TestGetPolicy(t *testing.T) {
 func TestClientValidate(t *testing.T) {
 	type test struct {
 		clientname string
-		clientid   entity.ID
+		clientid   string
 		want       error
 	}
 
 	tests := []test{
 		{
 			clientname: "sam wade",
-			clientid:   uuid.NewV4(),
+			clientid:   "host1",
 			want:       nil,
 		},
 		{
 			clientname: "",
-			clientid:   uuid.NewV4(),
+			clientid:   "host1",
 			want:       entity.ErrInvalidEntity,
 		},
 		{
 			clientname: "",
-			clientid:   uuid.NewV4(),
+			clientid:   "",
 			want:       entity.ErrInvalidEntity,
 		},
 	}

@@ -1,15 +1,16 @@
 package entity
 
 type Client struct {
-	ConsumerID    ID       `bson:"_id"`
+	ID string `bson:"_id omitempty"`
+	ConsumerID    string    `bson:"consumerid"`
 	Clientname    string   `bson:"clientname"`
-	Policies      []ID     `bson:"policies"`
+	Policies      []string     `bson:"policies"`
 	Directorytree []string `bson: "treepath"`
 	Ignorepath    []string `bson: "ignore"`
 	Backups       []string `bson: "backups"`
 }
 
-func NewClient(clientname string, consumerid ID) (*Client, error) {
+func NewClient(clientname, consumerid string) (*Client, error) {
 	c := &Client{
 		ConsumerID: consumerid,
 		Clientname: clientname,
@@ -24,14 +25,14 @@ func NewClient(clientname string, consumerid ID) (*Client, error) {
 }
 
 func (c *Client) ValidateClient() error {
-	if c.Clientname == "" || c.ConsumerID.String() == "" {
+	if c.Clientname == "" || c.ConsumerID == "" {
 		return ErrInvalidEntity
 	}
 
 	return nil
 }
 
-func (c *Client) AddPolicy(policy ID) error {
+func (c *Client) AddPolicy(policy string) error {
 	_, err := c.GetPolicy(policy)
 	if err == nil {
 		return ErrPolicyAlreadyAdded
@@ -40,7 +41,7 @@ func (c *Client) AddPolicy(policy ID) error {
 	return nil
 }
 
-func (c *Client) RemovePolicy(policy ID) error {
+func (c *Client) RemovePolicy(policy string) error {
 	for i, j := range c.Policies {
 		if j == policy {
 			c.Policies = append(c.Policies[:i], c.Policies[i+1:]...)
@@ -50,7 +51,7 @@ func (c *Client) RemovePolicy(policy ID) error {
 	return ErrNotFound
 }
 
-func (c *Client) GetPolicy(policy ID) (ID, error) {
+func (c *Client) GetPolicy(policy string) (string, error) {
 	for _, v := range c.Policies {
 		if v == policy {
 			return policy, nil
