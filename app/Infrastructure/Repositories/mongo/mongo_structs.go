@@ -13,3 +13,14 @@ type MGClient struct {
 	Ignorepath    []string             `bson:"ignore"`
 	Backups       []string             `bson:"backups"`
 }
+
+type MGPolicy struct {
+	PolicyID   primitive.ObjectID   `bson:"_id"`
+	Policyname string               `bson:"policyname"`
+	Clients    []primitive.ObjectID `bson:"clients"`
+	Retention  int                  `bson:"retention"`
+	State      string               `bson:"state"`
+	Type       string               `bson:"type"`
+	Fullbackup []string             `bson:"fullbackup"`
+	IncBackup  []string             `bson:"incbackup"`
+}

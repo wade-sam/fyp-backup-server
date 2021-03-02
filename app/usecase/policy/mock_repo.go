@@ -2,25 +2,27 @@ package policy
 
 import (
 	"github.com/wade-sam/fyp-backup-server/entity"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type policyholder struct {
-	m map[entity.ID]*entity.Policy
+	m map[string]*entity.Policy
 }
 
 func NewPolicyHolder() *policyholder {
-	var p = map[entity.ID]*entity.Policy{}
+	var p = map[string]*entity.Policy{}
 	return &policyholder{
 		m: p,
 	}
 }
 
-func (r *policyholder) Create(policy *entity.Policy) (entity.ID, error) {
-	r.m[policy.PolicyID] = policy
-	return policy.PolicyID, nil
+func (r *policyholder) Create(policy *entity.Policy) (string, error) {
+	id := primitive.NewObjectID().Hex()
+	r.m[id] = policy
+	return id, nil
 }
 
-func (r *policyholder) Get(p entity.ID) (*entity.Policy, error) {
+func (r *policyholder) Get(p string) (*entity.Policy, error) {
 	if r.m[p] == nil {
 		return nil, entity.ErrNotFound
 	}
@@ -35,7 +37,7 @@ func (r *policyholder) List() ([]*entity.Policy, error) {
 	return d, nil
 }
 
-func (r *policyholder) Delete(id entity.ID) error {
+func (r *policyholder) Delete(id string) error {
 	if r.m[id] == nil {
 		return entity.ErrNotFound
 	}

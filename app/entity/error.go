@@ -19,3 +19,4 @@ var ErrPolicyCantBeRemoved = errors.New("This policy could not be deleted from t
 var ErrNoNewItem = errors.New("There are no new Items")
 
 var ErrCouldNotAddItem = errors.New("Could not add the item requested")
+var ErrCouldNotUpdateItem = errors.New("Could not update item")

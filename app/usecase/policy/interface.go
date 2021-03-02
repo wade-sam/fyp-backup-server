@@ -5,14 +5,14 @@ import (
 )
 
 type Reader interface {
-	Get(name entity.ID) (*entity.Policy, error)
+	Get(name string) (*entity.Policy, error)
 	List() ([]*entity.Policy, error)
 }
 
 type Writer interface {
-	Create(policy *entity.Policy) (entity.ID, error)
+	Create(policy *entity.Policy) (string, error)
 	Update(policy *entity.Policy) error
-	Delete(name entity.ID) error
+	Delete(name string) error
 }
 
 /* TODO
@@ -28,9 +28,9 @@ type Repository interface {
 }
 
 type UseCase interface {
-	GetPolicy(name entity.ID) (*entity.Policy, error)
+	GetPolicy(name string) (*entity.Policy, error)
 	ListPolicies() ([]*entity.Policy, error)
-	CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup, clients []entity.ID) (entity.ID, error)
+	CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup, clients []string) (string, error)
 	UpdatePolicy(policy *entity.Policy) error
-	DeletePolicy(name entity.ID) error
+	DeletePolicy(name string) error
 }

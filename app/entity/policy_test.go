@@ -11,7 +11,7 @@ import (
 func TestNewPolicy(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	clients := []entity.ID{entity.NewID()}
+	clients := []string{"client 1"}
 	p, err := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
 	assert.Nil(t, err)
 	assert.Equal(t, p.Policyname, "Wednesday's backup")
@@ -26,9 +26,9 @@ func TestNewPolicy(t *testing.T) {
 func TestAddClient(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	clients := []entity.ID{entity.NewID()}
+	clients := []string{"client 1"}
 	p, _ := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
-	client := entity.NewID()
+	client := "client 2"
 	err := p.AddClient(client)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(p.Clients))
@@ -39,10 +39,10 @@ func TestAddClient(t *testing.T) {
 func TestRemoveClient(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	client := entity.NewID()
-	clients := []entity.ID{client}
+	client := "client 10"
+	clients := []string{client}
 	p, _ := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
-	err := p.RemoveClient(entity.NewID())
+	err := p.RemoveClient("client 1")
 	assert.Equal(t, entity.ErrNotFound, err)
 	//client := entity.NewID()
 	_ = p.AddClient(client)
@@ -53,21 +53,21 @@ func TestRemoveClient(t *testing.T) {
 func TestGetClient(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	client := entity.NewID()
-	clients := []entity.ID{client}
+	client := "client 10"
+	clients := []string{client}
 	p, _ := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
 	client, err := p.GetClient(client)
 	assert.Nil(t, err)
 	assert.Equal(t, client, client)
-	_, err = p.GetClient(entity.NewID())
+	_, err = p.GetClient("client")
 	assert.Equal(t, entity.ErrNotFound, err)
 }
 
 func TestGetState(t *testing.T) {
 	fullschedule := []string{"Monday", "Thursday", "Sunday"}
 	incremental := []string{}
-	client := entity.NewID()
-	clients := []entity.ID{client}
+	client := "client 1"
+	clients := []string{client}
 	p, _ := entity.NewPolicy("Wednesday's backup", "full", 10, fullschedule, incremental, clients)
 	state, err := p.GetState()
 	assert.Nil(t, err)
@@ -79,10 +79,10 @@ func TestGetState(t *testing.T) {
 	assert.Equal(t, state, "inactive")
 }
 
-func testPolicyValidate(t *testing.T) {
+func TestPolicyValidate(t *testing.T) {
 	type test struct {
 		Policyname string
-		Clients    []entity.ID
+		Clients    []string
 		Retention  int
 		State      string
 		Type       string
@@ -93,7 +93,7 @@ func testPolicyValidate(t *testing.T) {
 	tests := []test{
 		{
 			Policyname: "wednesday backup",
-			Clients:    []entity.ID{entity.NewID()},
+			Clients:    []string{"client 1"},
 			Retention:  10,
 			Type:       "full",
 			Fullbackup: []string{"Monday", "Thursday", "Sunday"},
@@ -102,7 +102,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "",
-			Clients:    []entity.ID{entity.NewID()},
+			Clients:    []string{"client 1"},
 			Retention:  10,
 			Type:       "full",
 			Fullbackup: []string{"Monday", "Thursday", "Sunday"},
@@ -111,7 +111,7 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []entity.ID{entity.NewID()},
+			Clients:    []string{"client 1"},
 			Retention:  0,
 			Type:       "full",
 			Fullbackup: []string{"Monday", "Thursday", "Sunday"},
@@ -120,57 +120,57 @@ func testPolicyValidate(t *testing.T) {
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []entity.ID{entity.NewID()},
+			Clients:    []string{"client 1"},
 			Retention:  10,
 			Type:       "full",
 			Fullbackup: []string{},
 			IncBackup:  []string{"Monday", "Thursday", "Sunday"},
-			want:       entity.ErrInvalidEntity,
+			want:       entity.ErrInvalidBackupPlan,
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []entity.ID{entity.NewID()},
+			Clients:    []string{"client 1"},
 			Retention:  10,
 			Type:       "both",
 			Fullbackup: []string{},
 			IncBackup:  []string{"Monday", "Thursday", "Sunday"},
-			want:       entity.ErrInvalidEntity,
+			want:       entity.ErrInvalidBackupPlan,
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []entity.ID{entity.NewID()},
+			Clients:    []string{"client 1"},
 			Retention:  10,
 			Type:       "both",
 			Fullbackup: []string{"Sunday"},
 			IncBackup:  []string{"Monday", "Thursday", "Sunday"},
-			want:       nil,
+			want:       entity.ErrInvalidBackupPlan,
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []entity.ID{entity.NewID()},
+			Clients:    []string{"client 1"},
 			Retention:  10,
 			Type:       "",
 			Fullbackup: []string{},
 			IncBackup:  []string{"Monday", "Thursday", "Sunday"},
-			want:       entity.ErrInvalidEntity,
+			want:       entity.ErrInvalidBackupPlan,
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []entity.ID{entity.NewID()},
+			Clients:    []string{"client 1"},
 			Retention:  10,
 			Type:       "both",
 			Fullbackup: []string{"Monday"},
 			IncBackup:  []string{"Monday", "Thursday", "Sunday"},
-			want:       entity.ErrInvalidEntity,
+			want:       entity.ErrInvalidBackupPlan,
 		},
 		{
 			Policyname: "wednesday's backup",
-			Clients:    []entity.ID{entity.NewID()},
+			Clients:    []string{"client 1"},
 			Retention:  10,
 			Type:       "both",
 			Fullbackup: []string{},
 			IncBackup:  []string{},
-			want:       entity.ErrInvalidEntity,
+			want:       entity.ErrInvalidBackupPlan,
 		},
 	}
 

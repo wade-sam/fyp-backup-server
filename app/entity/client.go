@@ -1,13 +1,13 @@
 package entity
 
 type Client struct {
-	ID string `bson:"_id omitempty"`
-	ConsumerID    string    `bson:"consumerid"`
+	ID            string   `bson:"_id,omitempty"`
+	ConsumerID    string   `bson:"consumerid"`
 	Clientname    string   `bson:"clientname"`
-	Policies      []string     `bson:"policies"`
-	Directorytree []string `bson: "treepath"`
-	Ignorepath    []string `bson: "ignore"`
-	Backups       []string `bson: "backups"`
+	Policies      []string `bson:"policies"`
+	Directorytree []string `bson:"treepath"`
+	Ignorepath    []string `bson:"ignore"`
+	Backups       []string `bson:"backups"`
 }
 
 func NewClient(clientname, consumerid string) (*Client, error) {

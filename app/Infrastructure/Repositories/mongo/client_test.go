@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-func InitialiseRepo() *repo.ClientMongo {
+func InitialiseClientRepo() *repo.ClientMongo {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
 	defer cancel()
 	creds := options.Credential{
@@ -36,7 +36,7 @@ func InitialiseRepo() *repo.ClientMongo {
 }
 
 func Test_CreateClient(t *testing.T) {
-	mg := InitialiseRepo()
+	mg := InitialiseClientRepo()
 	consumerID := "host1"
 	client1 := entity.Client{
 		ConsumerID:    consumerID,
@@ -53,19 +53,19 @@ func Test_CreateClient(t *testing.T) {
 }
 
 func Test_ListClients(t *testing.T) {
-	repo := InitialiseRepo()
+	repo := InitialiseClientRepo()
 	clients, err := repo.List()
 	assert.Nil(t, err)
 	fmt.Println(clients[0])
 }
 
 func Test_GetClients(t *testing.T) {
-	repo := InitialiseRepo()
+	repo := InitialiseClientRepo()
 	consumerID := "host1"
 	client1 := entity.Client{
 		ConsumerID:    consumerID,
 		Clientname:    "Sam's MacBook Pro",
-		Policies:      []string{"p1", "p2", "p3"},
+		Policies:      []string{primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex(), primitive.NewObjectID().Hex()},
 		Directorytree: []string{"/", "/home", "/home/sam"},
 		Ignorepath:    []string{"/home/test"},
 	}
@@ -78,7 +78,7 @@ func Test_GetClients(t *testing.T) {
 }
 
 func Test_UpdateClient(t *testing.T) {
-	repo := InitialiseRepo()
+	repo := InitialiseClientRepo()
 	client, err := repo.Get("603d295d7bec9bce0969d6c7")
 	assert.Nil(t, err)
 	new_client_name := "Jack's Macbook Pro"
@@ -91,7 +91,7 @@ func Test_UpdateClient(t *testing.T) {
 }
 
 func Test_DeleteClient(t *testing.T) {
-	repo := InitialiseRepo()
+	repo := InitialiseClientRepo()
 	err := repo.Delete("603d295d7bec9bce0969d6c7")
 	assert.Nil(t, err)
 	_, err = repo.Get("603d295d7bec9bce0969d6c7")

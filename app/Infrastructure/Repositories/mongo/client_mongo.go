@@ -35,17 +35,23 @@ func (c *ClientMongo) Create(client *entity.Client) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	collection := c.db.Database(c.database).Collection(c.collection)
-	mclient := ClientToMclient(client)
-	insertResult, err := collection.InsertOne(ctx, mclient)
-	id := insertResult.InsertedID.(primitive.ObjectID).Hex()
+	mclient, err := ClientToMclient(client)
 	if err != nil {
-		return "", errors.Wrap(err, "repository.CreateClient")
+		return "", entity.ErrCouldNotAddItem
 	}
+	insertResult, err := collection.InsertOne(ctx, mclient)
+	if err != nil {
+		return "", entity.ErrCouldNotAddItem
+	}
+	id := insertResult.InsertedID.(primitive.ObjectID).Hex()
 	return id, nil
 }
 
-func ClientToMclient(client *entity.Client) *MGClient {
-	policies, _ := policystringToHex(client.Policies)
+func ClientToMclient(client *entity.Client) (*MGClient, error) {
+	policies, err := policystringToHex(client.Policies)
+	if err != nil {
+		return nil, err
+	}
 	var mclient MGClient
 	if client.ID == "" {
 		id := primitive.NewObjectID()
@@ -60,12 +66,15 @@ func ClientToMclient(client *entity.Client) *MGClient {
 	mclient.Ignorepath = client.Ignorepath
 	mclient.Policies = policies
 	mclient.Backups = client.Backups
-	return &mclient
+	return &mclient, nil
 }
 
-func MclientToClient(mclient *MGClient) *entity.Client {
+func MclientToClient(mclient *MGClient) (*entity.Client, error) {
 	fmt.Println("MclientToClient", mclient)
-	policies, _ := policyhexToString(mclient.Policies)
+	policies, err := policyhexToString(mclient.Policies)
+	if err != nil {
+		return nil, err
+	}
 
 	client := entity.Client{
 		ID:            mclient.ID.Hex(),
@@ -76,7 +85,7 @@ func MclientToClient(mclient *MGClient) *entity.Client {
 		Policies:      policies,
 		Backups:       mclient.Backups,
 	}
-	return &client
+	return &client, nil
 }
 func policystringToHex(policies []string) ([]primitive.ObjectID, error) {
 	var result []primitive.ObjectID
@@ -110,7 +119,10 @@ func (c *ClientMongo) Update(client *entity.Client) error {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 	collection := c.db.Database(c.database).Collection("clients_collection")
-	mclient := ClientToMclient(client)
+	mclient, err := ClientToMclient(client)
+	if err != nil {
+		return entity.ErrCouldNotUpdateItem
+	}
 	result, err := collection.UpdateOne(
 		ctx,
 		bson.M{"_id": mclient.ID},
@@ -131,9 +143,12 @@ func (c *ClientMongo) Delete(name string) error {
 		return entity.ErrClientCannotBeDeleted
 	}
 	collection := c.db.Database(c.database).Collection("clients_collection")
-	_, err = collection.DeleteOne(ctx, bson.M{"_id": id})
+	result, err := collection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
 		return entity.ErrClientCannotBeDeleted
+	}
+	if result.DeletedCount == 0 {
+		return entity.ErrInvalidEntity
 	}
 	return nil
 }
@@ -153,7 +168,10 @@ func (c *ClientMongo) Get(id string) (*entity.Client, error) {
 		return nil, entity.ErrNotFound
 	}
 
-	client := MclientToClient(&mclient)
+	client, err := MclientToClient(&mclient)
+	if err != nil {
+		return nil, entity.ErrNotFound
+	}
 	return client, nil
 }
 
@@ -173,7 +191,10 @@ func (c *ClientMongo) List() ([]*entity.Client, error) {
 		return nil, err
 	}
 	for _, i := range mclients {
-		client := MclientToClient(&i)
+		client, err := MclientToClient(&i)
+		if err != nil {
+			return nil, entity.ErrNotFound
+		}
 		clients = append(clients, client)
 
 	}
