@@ -1,19 +1,15 @@
 package dispatcher
 
-import (
-	"github.com/wade-sam/fyp-backup-server/entity"
-)
-
 type Repository interface {
-	NewClient() (entity.ID, error)
-	RemovePolicy(client entity.ID, policy entity.ID) error
-	AddPolicy(client entity.ID, policy entity.ID) error
-	RemovePolicies(policy entity.ID) error
+	NewClient() (string, error)
+	RemovePolicy(client string, policy string) error
+	AddPolicy(client string, policy string) error
+	RemovePolicies(policy string) error
 }
 
 type UseCase interface {
-	SearchNewClient() (entity.ID, error)
-	AddPolicyToClient(consumerID, policyID []entity.ID) error
-	RemovePolicyFromClient(client entity.ID, policy []entity.ID) error
-	RemoveClientFromPolicy(client []entity.ID, policy entity.ID) error
+	SearchNewClient() (string, error)
+	AddPolicyToClient(consumerID, policyID []string) error
+	RemovePolicyFromClient(client string, policy []string) error
+	RemoveClientFromPolicy(client []string, policy string) error
 }

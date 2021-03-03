@@ -12,7 +12,7 @@ func NewService(r Repository) *Service {
 	}
 }
 
-func (s *Service) AddPolicyToClient(consumerID entity.ID, policyID []entity.ID) error {
+func (s *Service) AddPolicyToClient(consumerID string, policyID []string) error {
 	for _, j := range policyID {
 		err := s.repo.AddPolicy(consumerID, j)
 		if err != nil {
@@ -22,7 +22,7 @@ func (s *Service) AddPolicyToClient(consumerID entity.ID, policyID []entity.ID) 
 	return nil
 }
 
-func (s *Service) RemovePolicyFromClient(consumerID entity.ID, policyID []entity.ID) error {
+func (s *Service) RemovePolicyFromClient(consumerID string, policyID []string) error {
 	for _, j := range policyID {
 		err := s.repo.RemovePolicy(consumerID, j)
 		if err != nil {
@@ -32,11 +32,11 @@ func (s *Service) RemovePolicyFromClient(consumerID entity.ID, policyID []entity
 	return nil
 }
 
-func (s *Service) RemoveClientFromPolicy(policyID entity.ID) error {
+func (s *Service) RemoveClientFromPolicy(policyID string) error {
 	return s.repo.RemovePolicies(policyID)
 
 }
-func (s *Service) SearchNewClient() (entity.ID, error) {
+func (s *Service) SearchNewClient() (string, error) {
 	id, err := s.repo.NewClient()
 	if err != nil {
 		return id, entity.ErrNoNewClient

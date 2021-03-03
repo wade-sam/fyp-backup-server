@@ -20,3 +20,6 @@ var ErrNoNewItem = errors.New("There are no new Items")
 
 var ErrCouldNotAddItem = errors.New("Could not add the item requested")
 var ErrCouldNotUpdateItem = errors.New("Could not update item")
+
+var ErrNoMatchingTopic = errors.New("Topic Doesn't exist")
+var ErrNoSubscribersForTopic = errors.New("No current subscribers for the topic")
