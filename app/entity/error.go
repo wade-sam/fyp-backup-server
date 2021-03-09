@@ -23,3 +23,6 @@ var ErrCouldNotUpdateItem = errors.New("Could not update item")
 
 var ErrNoMatchingTopic = errors.New("Topic Doesn't exist")
 var ErrNoSubscribersForTopic = errors.New("No current subscribers for the topic")
+var ErrChildAlreadyExists = errors.New("Child already exists")
+var ErrFileNotFound = errors.New("Could not find file")
+var ErrFailedDirectoryScan = errors.New("Failed the reading of the directory")
