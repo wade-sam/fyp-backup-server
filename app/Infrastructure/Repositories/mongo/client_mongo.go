@@ -70,7 +70,6 @@ func ClientToMclient(client *entity.Client) (*MGClient, error) {
 }
 
 func MclientToClient(mclient *MGClient) (*entity.Client, error) {
-	fmt.Println("MclientToClient", mclient)
 	policies, err := policyhexToString(mclient.Policies)
 	if err != nil {
 		return nil, err

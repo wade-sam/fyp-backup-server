@@ -26,3 +26,4 @@ var ErrNoSubscribersForTopic = errors.New("No current subscribers for the topic"
 var ErrChildAlreadyExists = errors.New("Child already exists")
 var ErrFileNotFound = errors.New("Could not find file")
 var ErrFailedDirectoryScan = errors.New("Failed the reading of the directory")
+var ErrTimeOut = errors.New("Timeout was met before a response was given")

@@ -29,6 +29,7 @@ type Broker struct {
 }
 
 type DTO struct {
+	ID   string      `json:"id"`
 	Data interface{} `json:"data"`
 }
 

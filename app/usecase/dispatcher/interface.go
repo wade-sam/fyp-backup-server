@@ -1,13 +1,25 @@
 package dispatcher
 
-import "github.com/wade-sam/fyp-backup-server/entity"
+import (
+	"github.com/wade-sam/fyp-backup-server/rabbitBus"
+)
 
-type Repository interface {
-	SearchForNewClient() (string, error)
-	DirectoryScan(client string) (*entity.Directory, error) //Return directory scan struct
+type Rabbit interface {
+	SearchForNewClient() error
+	DirectoryScan(client string) error //Return directory scan struct
 	// RemovePolicy(client string, policy string) error
 	// AddPolicy(client string, policy string) error
 	// RemovePolicies(policy string) error
+}
+
+type Bus interface {
+	Subscribe(topic string) (rabbitBus.EventChannel, error)
+	Unsubscribe(topic string, ch chan rabbitBus.Event) error
+}
+
+type Repository interface {
+	Rabbit
+	Bus
 }
 
 type UseCase interface {

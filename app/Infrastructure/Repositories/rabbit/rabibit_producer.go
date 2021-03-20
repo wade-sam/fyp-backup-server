@@ -1,12 +1,12 @@
 package rabbit
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/streadway/amqp"
-	"github.com/wade-sam/fyp-backup-server/entity"
+	//"github.com/wade-sam/fyp-backup-server/entity"
 )
 
 type ProducerConfig struct {
@@ -22,11 +22,13 @@ func (b *Broker) Publish(routekey, messagetype string, body *DTO) error {
 	if err != nil {
 		return err
 	}
-	dto, err := Serialize(body)
+	defer channel.Close()
+	//dto, err := Serialize(body)
+	data, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	defer channel.Close()
+	fmt.Println("DATA", body.Data, "ID", body.ID)
 	err = channel.Publish(
 		b.Producer.ExchangeName,
 		routekey,
@@ -35,7 +37,7 @@ func (b *Broker) Publish(routekey, messagetype string, body *DTO) error {
 		amqp.Publishing{
 			Type:        messagetype,
 			ContentType: "application/json",
-			Body:        dto,
+			Body:        []byte(data),
 		})
 	if err != nil {
 		return err
@@ -44,65 +46,84 @@ func (b *Broker) Publish(routekey, messagetype string, body *DTO) error {
 
 }
 
-func (b *Broker) SearchForNewClient() (string, error) {
-	chn, err := b.Bus.Subscribe("newclient")
-	if err != nil {
-		return "", entity.ErrNoMatchingTopic
-	}
+type StoragenodeData struct {
+	Clients    []string `json:"clients"`
+	PolicyName string   `json:"policyname"`
+}
+
+type ClientData struct {
+	Type     string   `json: "type"`
+	Client   string   `json: "name"`
+	PolicyID string   `json: "policy"`
+	Data     []string `json: "ignorelist"`
+}
+
+func (b *Broker) SearchForNewClient() error {
 	messagetype := "New.Client"
 	key := "newclient"
 	dto := DTO{}
-	err = b.Publish(key, messagetype, &dto)
-
+	err := b.Publish(key, messagetype, &dto)
 	if err != nil {
-		return "", err
+		return err
 	}
-
-	for i := 1; i < 10; i++ {
-		select {
-		case msg := <-chn:
-			s := ""
-			mapstructure.Decode(msg.Data, &s)
-			fmt.Println("mastructure", s)
-			return s, nil
-		default:
-			time.Sleep(2 * time.Second)
-		}
-	}
-	close(chn)
-	fmt.Println("NO NEW CLIENT")
-	return "", entity.ErrNoNewClient
+	return nil
 }
 
-func (b *Broker) DirectoryScan(client string) (*entity.Directory, error) {
-	chn, err := b.Bus.Subscribe("directoryscan")
-	if err != nil {
-		return nil, entity.ErrNoMatchingTopic
-	}
+func (b *Broker) DirectoryScan(client string) error {
 	messagetype := "Directory.Scan"
 	key := fmt.Sprintf("%v", client)
 	dto := DTO{}
-	err = b.Publish(key, messagetype, &dto)
+	err := b.Publish(key, messagetype, &dto)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	for i := 1; i < 200; i++ {
-		select {
-		case msg := <-chn:
-			d := entity.Directory{}
-			mapstructure.Decode(msg.Data, &d)
-			return &d, nil
-			//scanresult, err := msg.Data.(*entity.Directory)
-			// if err != nil {
-			// 	fmt.Println(scanresult)
-			// 	return scanresult, nil
-			// }
+	return nil
+}
 
-		default:
-			time.Sleep(2 * time.Second)
+//Storagenode needs policyname and clients to start backup
+func (b *Broker) StartBackup(clientID, policyID, clientname, backuptype string, ignorepath []string) error {
+
+	dto := DTO{}
+	data := ClientData{
+		Client:   clientname,
+		PolicyID: policyID,
+		Data:     ignorepath,
+	}
+	dto.Data = data
+	// temp := ClientData{
+	// 	Type:     "FUCK OFF!",
+	// 	Client:   "FUCK OFF!",
+	// 	PolicyID: "Friday Backup",
+	// 	Data:     []string{"/home"},
+	// }
+	dto.Data = data
+	//messagetype := ""
+	if backuptype == "Full" {
+		err := b.Publish(clientID, "Full.Backup", &dto)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		err := b.Publish(clientID, "Inc.Backup", &dto)
+		if err != nil {
+			return err
 		}
 	}
-	close(chn)
-	return nil, entity.ErrNotFound
+	return nil
+}
 
+func (b *Broker) StartStorageNode(clients []string, storagenode, policy string) error {
+	dto := DTO{}
+	temp := StoragenodeData{
+		Clients:    clients,
+		PolicyName: policy,
+	}
+	dto.Data = temp
+
+	err := b.Publish(storagenode, "New.Backup.Job", &dto)
+	if err != nil {
+		return err
+	}
+	return nil
 }

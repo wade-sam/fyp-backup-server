@@ -30,7 +30,7 @@ type Repository interface {
 type UseCase interface {
 	GetClient(name string) (*entity.Client, error)
 	ListClients() ([]*entity.Client, error)
-	CreateClient(client *entity.Client) (string, error)
+	CreateClient(clientname string, consumerID string) (string, error)
 	UpdateClient(client *entity.Client) error
 	DeleteClient(name string) error
 	SearchNewClient() (string, error)

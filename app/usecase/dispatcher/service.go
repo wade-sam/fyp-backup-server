@@ -1,14 +1,22 @@
 package dispatcher
 
-import "github.com/wade-sam/fyp-backup-server/entity"
+import (
+	"fmt"
+	"time"
+
+	"github.com/mitchellh/mapstructure"
+	"github.com/wade-sam/fyp-backup-server/entity"
+)
 
 type Service struct {
-	repo Repository
+	rabbit Rabbit
+	bus    Bus
 }
 
-func NewService(r Repository) *Service {
+func NewService(r Rabbit, b Bus) *Service {
 	return &Service{
-		repo: r,
+		rabbit: r,
+		bus:    b,
 	}
 }
 
@@ -24,19 +32,59 @@ func NewService(r Repository) *Service {
 // }
 
 func (s *Service) SearchForNewClient() (string, error) {
-	id, err := s.repo.SearchForNewClient()
+	chn, err := s.bus.Subscribe("newclient")
 	if err != nil {
-		return id, entity.ErrNoNewClient
+		return "", err
 	}
-	return id, nil
+	err = s.rabbit.SearchForNewClient()
+	if err != nil {
+		return "", entity.ErrNoNewClient
+	}
+	for i := 1; i < 10; i++ {
+		select {
+		case msg := <-chn:
+			s := ""
+			mapstructure.Decode(msg.Data, &s)
+			fmt.Println("mastructure", s)
+			close(chn)
+			return s, nil
+		default:
+			time.Sleep(2 * time.Second)
+		}
+	}
+	close(chn)
+	fmt.Println("NO NEW CLIENT")
+	return "", entity.ErrNoNewClient
 }
 func (s *Service) GetDirectoryScan(client string) (*entity.Directory, error) {
-	scanResult, err := s.repo.DirectoryScan(client)
-
+	chn, err := s.bus.Subscribe("directoryscan")
 	if err != nil {
 		return nil, err
 	}
-	return scanResult, nil
+
+	err = s.rabbit.DirectoryScan(client)
+	if err != nil {
+		return nil, err
+	}
+	for i := 1; i < 200; i++ {
+		select {
+		case msg := <-chn:
+			d := entity.Directory{}
+			mapstructure.Decode(msg.Data, &d)
+			err = s.bus.Unsubscribe("directoryscan", chn)
+			if err != nil {
+				close(chn)
+				return &d, err
+			}
+			return &d, nil
+
+		default:
+			time.Sleep(2 * time.Second)
+		}
+	}
+	close(chn)
+	return nil, entity.ErrNotFound
+
 }
 
 // func (s *Service) RemovePolicyFromClient(consumerID string, policyID []string) error {

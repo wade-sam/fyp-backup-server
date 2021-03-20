@@ -18,7 +18,7 @@ func (s *Service) CreateClient(clientname string, consumerID string) (string, er
 	client, err := entity.NewClient(clientname, consumerID)
 	err = client.ValidateClient()
 	if err != nil {
-		return client.ConsumerID, entity.ErrInvalidEntity
+		return "", entity.ErrInvalidEntity
 	}
 	return s.repo.Create(client)
 }

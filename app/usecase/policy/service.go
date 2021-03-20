@@ -1,6 +1,8 @@
 package policy
 
-import "github.com/wade-sam/fyp-backup-server/entity"
+import (
+	"github.com/wade-sam/fyp-backup-server/entity"
+)
 
 type Service struct {
 	repo Repository
@@ -13,9 +15,10 @@ func NewService(r Repository) *Service {
 }
 
 func (s *Service) CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup []string, clients []string) (string, error) {
+
 	policy, err := entity.NewPolicy(policyname, backupType, retention, fullbackup, incrementalbackup, clients)
 	if err != nil {
-		return policy.PolicyID, err
+		return "", err
 	}
 	return s.repo.Create(policy)
 }

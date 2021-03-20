@@ -9,8 +9,12 @@ import (
 	mg "github.com/wade-sam/fyp-backup-server/Infrastructure/Repositories/mongo"
 	rb "github.com/wade-sam/fyp-backup-server/Infrastructure/Repositories/rabbit"
 	"github.com/wade-sam/fyp-backup-server/rabbitBus"
+	"github.com/wade-sam/fyp-backup-server/usecase/client"
 	cs "github.com/wade-sam/fyp-backup-server/usecase/client"
-	ds "github.com/wade-sam/fyp-backup-server/usecase/dispatcher"
+	"github.com/wade-sam/fyp-backup-server/usecase/policy"
+
+	bs "github.com/wade-sam/fyp-backup-server/usecase/backup"
+	//ds "github.com/wade-sam/fyp-backup-server/usecase/dispatcher"
 	ps "github.com/wade-sam/fyp-backup-server/usecase/policy"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -74,11 +78,60 @@ func main() {
 	consumer_chan, err := broker.Start()
 	go broker.Consume(consumer_chan)
 
-	cs.NewService(ClientsRepo)
-	ps.NewService(PolicyMongo)
-	dispatcherService := ds.NewService(broker)
+	clientService := cs.NewService(ClientsRepo)
+	policyServce := ps.NewService(PolicyMongo)
+	policy, err := setupClientPolicy(policyServce, clientService)
+	//	policy, err := setupIncClientPolicy(policyServce, clientService)
+	//fmt.Println(policy)
+	// policy, err := policyServce.GetPolicy("603d7a904b9ac22b561fdcbb")
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+	// fmt.Println(policy)
 
-	clientname, err := dispatcherService.SearchForNewClient()
-	scanresult, err := dispatcherService.GetDirectoryScan(clientname)
-	fmt.Println("client name is: ", scanresult)
+	backup := bs.NewService(ClientsRepo, PolicyMongo, broker, bus)
+	err = backup.StartBackup(policy, "Full")
+	if err != nil {
+		fmt.Println(err)
+	}
+	// dispatcherService := ds.NewService(broker, bus)
+	// // fmt.Println("starting dispatch")
+	// clientname, err := dispatcherService.SearchForNewClient()
+	// scanresult, err := dispatcherService.GetDirectoryScan(clientname)
+	// fmt.Println("client name is: ", scanresult)
+}
+
+func setupClientPolicy(p *policy.Service, c *client.Service) (string, error) {
+	client, err := c.CreateClient("samwade", "newclient")
+	if err != nil {
+		return "", err
+	}
+	fullbackup := []string{"Monday", "Friday"}
+	clients := []string{client}
+	policy, err := p.CreatePolicy("Friday Backup", "full", 10, fullbackup, []string{}, clients)
+	if err != nil {
+		return "", err
+	}
+	rclient, _ := c.GetClient(client)
+	rclient.AddPolicy(policy)
+	c.UpdateClient(rclient)
+	return policy, nil
+}
+
+func setupIncClientPolicy(p *policy.Service, c *client.Service) (string, error) {
+	client, err := c.CreateClient("samwade", "newclient")
+	if err != nil {
+		return "", err
+	}
+	IncBackup := []string{"Monday", "Friday"}
+	FullBackup := []string{"Sunday", "Tuesday"}
+	clients := []string{client}
+	policy, err := p.CreatePolicy("Friday Backup", "both", 10, FullBackup, IncBackup, clients)
+	if err != nil {
+		return "", err
+	}
+	rclient, _ := c.GetClient(client)
+	rclient.AddPolicy(policy)
+	c.UpdateClient(rclient)
+	return policy, nil
 }

@@ -80,21 +80,15 @@ func (b *Broker) Consume(channel *amqp.Channel) error {
 		return err
 	}
 	for msg := range msgs {
-		//jmsg, err := Deserialize(msg.Body)
-		// if err != nil {
-		// 	//log.Println("Can't deserialise message")
-		// }
-		// bmsg := DTO{
-		// 	Data: jmsg.Data,
-		// }
 		var d entity.Directory
+		var file entity.ClientFile
 		var s string
 		switch msg.Type {
 
 		case "backup":
 			var f entity.File
-			file := json.Unmarshal([]byte(msg.Body), &f)
-			b.Bus.Publish("backup", file)
+			json.Unmarshal([]byte(msg.Body), &f)
+			b.Bus.Publish("backup", f)
 
 		case "restore":
 			//b.Bus.Publish("restore", jmsg.Data)
@@ -107,9 +101,21 @@ func (b *Broker) Consume(channel *amqp.Channel) error {
 			//var d entity.Directory
 			err = json.Unmarshal([]byte(msg.Body), &d)
 			b.Bus.Publish("directoryscan", d)
+		case "StorageNode.Job":
+			fmt.Println("Received client job")
+			err = json.Unmarshal([]byte(msg.Body), &s)
+			b.Bus.Publish("StorageNodeJob", s)
+		case "Client.File":
+			//fmt.Println("Received client message")
+			err = json.Unmarshal([]byte(msg.Body), &file)
+			//fmt.Println("Consumed", file)
+			b.Bus.Publish("clientfile", file)
+		case "StorageNode.File":
+			err = json.Unmarshal([]byte(msg.Body), &d)
+			b.Bus.Publish("storagenodefile", d)
 		}
 
-		fmt.Println("msg consumed", s)
+		//fmt.Println("msg consumed", s)
 	}
 	log.Println("Exiting")
 	return nil
