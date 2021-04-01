@@ -9,6 +9,7 @@ type Policy struct {
 	Type       string
 	Fullbackup []string
 	IncBackup  []string
+	BackupRun  []*BackupRun
 }
 
 func NewPolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup []string, clients []string) (*Policy, error) {
@@ -79,6 +80,24 @@ func (p *Policy) AddClient(client string) error {
 	p.Clients = append(p.Clients, client)
 	p.AddState()
 	return nil
+}
+
+func (p *Policy) AddBackupRun(run *BackupRun) error {
+	_, err := p.GetBackupRun(run.ID)
+	if err != nil {
+		return err
+	}
+	p.BackupRun = append(p.BackupRun, run)
+	return nil
+}
+
+func (p *Policy) GetBackupRun(run string) (*BackupRun, error) {
+	for _, v := range p.BackupRun {
+		if v.ID == run {
+			return v, nil
+		}
+	}
+	return nil, ErrNotFound
 }
 
 func (p *Policy) RemoveClient(client string) error {

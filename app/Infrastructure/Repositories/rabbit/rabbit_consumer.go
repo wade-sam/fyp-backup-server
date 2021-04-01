@@ -111,8 +111,10 @@ func (b *Broker) Consume(channel *amqp.Channel) error {
 			//fmt.Println("Consumed", file)
 			b.Bus.Publish("clientfile", file)
 		case "StorageNode.File":
-			err = json.Unmarshal([]byte(msg.Body), &d)
-			b.Bus.Publish("storagenodefile", d)
+			err = json.Unmarshal([]byte(msg.Body), &file)
+
+			b.Bus.Publish("storagenodefile", file)
+			//fmt.Println("Storage node file")
 		}
 
 		//fmt.Println("msg consumed", s)

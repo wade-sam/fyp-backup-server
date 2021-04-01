@@ -7,10 +7,15 @@ import (
 
 type PolicyRepository interface {
 	Get(name string) (*entity.Policy, error)
+	Update(policy *entity.Policy) error
 }
 
 type ClientRepository interface {
 	Get(name string) (*entity.Client, error)
+}
+
+type BackupRepository interface {
+	Create(clientrun *entity.ClientRun) (string, error)
 }
 type RabbitRepository interface {
 	StartStorageNode(clients []string, storagenode, policy string) error

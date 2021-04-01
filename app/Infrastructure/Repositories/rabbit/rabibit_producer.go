@@ -125,5 +125,6 @@ func (b *Broker) StartStorageNode(clients []string, storagenode, policy string) 
 	if err != nil {
 		return err
 	}
+	fmt.Println("SENT")
 	return nil
 }

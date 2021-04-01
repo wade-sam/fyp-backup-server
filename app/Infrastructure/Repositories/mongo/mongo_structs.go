@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"github.com/wade-sam/fyp-backup-server/entity"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -23,4 +24,24 @@ type MGPolicy struct {
 	Type       string               `bson:"type"`
 	Fullbackup []string             `bson:"fullbackup"`
 	IncBackup  []string             `bson:"incbackup"`
+	PolicyRuns []*MGBackupRun       `bson:"policyRuns"`
+}
+
+type MGBackupRun struct {
+	BackupID           string               `bson:"id"`
+	Status             string               `bson:"status"`
+	Type               string               `bson:"type"`
+	RunTime            string               `bson:"runtime"`
+	Expiry             int                  `bson:"expirydate"`
+	SuccessfullClients []primitive.ObjectID `bson:"successclientruns"`
+	FailedClients      []primitive.ObjectID `bson:"failedclientruns"`
+}
+
+type MGClientRun struct {
+	ClientRunID   primitive.ObjectID            `bson:"_id"`
+	ClientName    string                        `bson:"name"`
+	Status        string                        `bson:"status"`
+	TotalFiles    int                           `bson:"totalfiles"`
+	BackupSuccess map[string]*entity.ClientFile `bson:"backupsuccess"`
+	BackupFailure map[string]*entity.ClientFile `bson:"backupfailure"`
 }

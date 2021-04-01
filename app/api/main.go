@@ -69,6 +69,7 @@ func main() {
 
 	ClientsRepo := mg.NewClientMongo(client, "maindb", "clients_collection", 10)
 	PolicyMongo := mg.NewPolicyMongo(client, "maindb", "policy_collection", 10)
+	BackupMongo := mg.NewBackupMongo(client, "maindb", "backup_collection", 10)
 	broker := rb.NewBroker(configuration, producerConf, consumerConf, bus)
 
 	err = broker.Connect()
@@ -89,7 +90,7 @@ func main() {
 	// }
 	// fmt.Println(policy)
 
-	backup := bs.NewService(ClientsRepo, PolicyMongo, broker, bus)
+	backup := bs.NewService(ClientsRepo, PolicyMongo, BackupMongo, broker, bus)
 	err = backup.StartBackup(policy, "Full")
 	if err != nil {
 		fmt.Println(err)
