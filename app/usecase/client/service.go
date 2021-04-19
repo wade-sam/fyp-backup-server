@@ -27,6 +27,10 @@ func (s *Service) GetClient(name string) (*entity.Client, error) {
 	return s.repo.Get(name)
 }
 
+func (s *Service) GetClientName(id string) (string, error) {
+	return s.repo.GetName(id)
+}
+
 func (s *Service) ListClients() ([]*entity.Client, error) {
 	result, err := s.repo.List()
 	if result == nil {
@@ -43,13 +47,13 @@ func (s *Service) UpdateClient(client *entity.Client) error {
 	if err != nil {
 		return entity.ErrInvalidEntity
 	}
-	r, err := s.GetClient(client.ConsumerID)
-	if r == nil {
-		return entity.ErrNotFound
-	}
-	if err != nil {
-		return err
-	}
+	// r, err := s.GetClient(client.ID)
+	// if r == nil {
+	// 	return entity.ErrNotFound
+	// }
+	// if err != nil {
+	// 	return err
+	// }
 	err = s.repo.Update(client)
 	if err != nil {
 		return err

@@ -6,6 +6,7 @@ import (
 
 type Reader interface {
 	Get(name string) (*entity.Client, error)
+	GetName(id string) (string, error)
 	List() ([]*entity.Client, error)
 }
 
@@ -29,9 +30,10 @@ type Repository interface {
 
 type UseCase interface {
 	GetClient(name string) (*entity.Client, error)
+	GetClientName(id string) (string, error)
 	ListClients() ([]*entity.Client, error)
 	CreateClient(clientname string, consumerID string) (string, error)
 	UpdateClient(client *entity.Client) error
 	DeleteClient(name string) error
-	SearchNewClient() (string, error)
+	//SearchNewClient() (string, error)
 }

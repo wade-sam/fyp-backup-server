@@ -82,6 +82,7 @@ func (b *Broker) Consume(channel *amqp.Channel) error {
 	for msg := range msgs {
 		var d entity.Directory
 		var file entity.ClientFile
+		var holder entity.ClientFileHolder
 		var s string
 		switch msg.Type {
 
@@ -108,12 +109,15 @@ func (b *Broker) Consume(channel *amqp.Channel) error {
 		case "Client.File":
 			//fmt.Println("Received client message")
 			err = json.Unmarshal([]byte(msg.Body), &file)
+			holder.File = &file
+			holder.Type = "clientfile"
 			//fmt.Println("Consumed", file)
-			b.Bus.Publish("clientfile", file)
+			b.Bus.Publish("file", holder)
 		case "StorageNode.File":
 			err = json.Unmarshal([]byte(msg.Body), &file)
-
-			b.Bus.Publish("storagenodefile", file)
+			holder.File = &file
+			holder.Type = "storagenodefile"
+			b.Bus.Publish("file", holder)
 			//fmt.Println("Storage node file")
 		}
 

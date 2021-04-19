@@ -1,5 +1,7 @@
 package entity
 
+import "errors"
+
 type Policy struct {
 	PolicyID   string
 	Policyname string
@@ -9,7 +11,30 @@ type Policy struct {
 	Type       string
 	Fullbackup []string
 	IncBackup  []string
-	BackupRun  []*BackupRun
+	BackupRun  []*Backups
+}
+
+type Backups struct {
+	ID                 string
+	Status             string
+	Type               string
+	Date               string
+	Expiry             string
+	RunTime            string
+	SuccessFullClients []string
+	FailedClients      []string
+}
+
+func NewBackup(id, t, d, e, r string, sc, fc []string) *Backups {
+	return &Backups{
+		ID:                 id,
+		Type:               t,
+		Date:               d,
+		Expiry:             e,
+		RunTime:            r,
+		SuccessFullClients: sc,
+		FailedClients:      fc,
+	}
 }
 
 func NewPolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup []string, clients []string) (*Policy, error) {
@@ -82,16 +107,16 @@ func (p *Policy) AddClient(client string) error {
 	return nil
 }
 
-func (p *Policy) AddBackupRun(run *BackupRun) error {
+func (p *Policy) AddBackupRun(run *Backups) error {
 	_, err := p.GetBackupRun(run.ID)
-	if err != nil {
-		return err
+	if err == nil {
+		return errors.New("ERROR FOUND EXISTING BACKUP PLAN")
 	}
 	p.BackupRun = append(p.BackupRun, run)
 	return nil
 }
 
-func (p *Policy) GetBackupRun(run string) (*BackupRun, error) {
+func (p *Policy) GetBackupRun(run string) (*Backups, error) {
 	for _, v := range p.BackupRun {
 		if v.ID == run {
 			return v, nil

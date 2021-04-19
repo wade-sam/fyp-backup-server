@@ -39,6 +39,8 @@ func (b *BackupMongo) Create(clientrun *entity.ClientRun) (string, error) {
 		return "", err
 	}
 	id := insertResult.InsertedID.(primitive.ObjectID).Hex()
+	//response, _ := b.Get(id)
+	//log.Println("CLIENTRUN IN MONGO", response)
 	return id, nil
 }
 

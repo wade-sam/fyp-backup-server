@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"log"
 	"time"
 
 	"context"
@@ -88,6 +89,55 @@ func (p *PolicyMongo) Get(id string) (*entity.Policy, error) {
 	return policy, nil
 }
 
+func (c *PolicyMongo) GetName(name string) (string, error) {
+	mcpolicy := MGPolicy{}
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+	collection := c.db.Database(c.database).Collection("policy_collection")
+	//filter := bson.M{"_id": id}
+	idhex, err := primitive.ObjectIDFromHex(name)
+	if err != nil {
+		return "", err
+	}
+	err = collection.FindOne(ctx, bson.M{"_id": idhex}).Decode(&mcpolicy)
+	if err != nil {
+		return "", entity.ErrNotFound
+	}
+	return mcpolicy.Policyname, nil
+}
+
+func (p *PolicyMongo) AddBackupRun(id string, backupRun *entity.Backups) error {
+
+	mbackuprun, err := BackupRunToMGBackupRun(backupRun)
+	if err != nil {
+		log.Println("error", err)
+		return entity.ErrCouldNotUpdateItem
+	}
+	policy, err := p.Get(id)
+	if err != nil {
+		return entity.ErrCouldNotUpdateItem
+	}
+	log.Println("AddBackupRun", mbackuprun)
+	mpolicy, err := PolicyToMpolicy(policy)
+	if err != nil {
+		return entity.ErrCouldNotUpdateItem
+	}
+	mpolicy.PolicyRuns = append(mpolicy.PolicyRuns, mbackuprun)
+
+	ctx, cancel := context.WithTimeout(context.Background(), p.timeout)
+	defer cancel()
+	collection := p.db.Database(p.database).Collection(p.collection)
+	_, err = collection.UpdateOne(
+		ctx,
+		bson.M{"_id": mpolicy.PolicyID},
+		bson.M{"$set": mpolicy},
+	)
+	if err != nil {
+		return entity.ErrCouldNotUpdateItem
+	}
+	return nil
+}
+
 func (p *PolicyMongo) Update(policy *entity.Policy) error {
 	ctx, cancel := context.WithTimeout(context.Background(), p.timeout)
 	defer cancel()
@@ -156,6 +206,51 @@ func clientHexToString(clients []primitive.ObjectID) ([]string, error) {
 		result = append(result, chex)
 	}
 	return result, nil
+}
+func MGBackupRunToBackupRun(mbackup *MGBackupRun) (*entity.Backups, error) {
+	//var backuprun *entity.Backups
+	fail, err := clientHexToString(mbackup.FailedClients)
+	if err != nil {
+		return nil, err
+	}
+	success, err := clientHexToString(mbackup.SuccessfullClients)
+	if err != nil {
+		return nil, err
+	}
+	backuprun := entity.Backups{
+		ID:                 mbackup.BackupID,
+		Status:             mbackup.Status,
+		Type:               mbackup.Type,
+		Date:               mbackup.Date,
+		Expiry:             mbackup.Expiry,
+		RunTime:            mbackup.RunTime,
+		SuccessFullClients: success,
+		FailedClients:      fail,
+	}
+
+	return &backuprun, nil
+}
+func BackupRunToMGBackupRun(backup *entity.Backups) (*MGBackupRun, error) {
+	var MBackupRun MGBackupRun
+	failedClients, err := clientstringToHex(backup.FailedClients)
+	if err != nil {
+		return nil, err
+	}
+	successClients, err := clientstringToHex(backup.SuccessFullClients)
+	if err != nil {
+		return nil, err
+	}
+	MBackupRun.FailedClients = failedClients
+	MBackupRun.SuccessfullClients = successClients
+
+	MBackupRun.BackupID = backup.ID
+	MBackupRun.Date = backup.Date
+	MBackupRun.Status = backup.Status
+	MBackupRun.Type = backup.Type
+	MBackupRun.RunTime = backup.RunTime
+	MBackupRun.Expiry = backup.Expiry
+
+	return &MBackupRun, nil
 }
 
 func PolicyToMpolicy(policy *entity.Policy) (*MGPolicy, error) {

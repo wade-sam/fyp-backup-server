@@ -200,3 +200,20 @@ func (c *ClientMongo) List() ([]*entity.Client, error) {
 	fmt.Println("testing 123", clients)
 	return clients, nil
 }
+
+func (c *ClientMongo) GetName(name string) (string, error) {
+	mclient := MGClient{}
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+	collection := c.db.Database(c.database).Collection("clients_collection")
+	//filter := bson.M{"_id": id}
+	idhex, err := primitive.ObjectIDFromHex(name)
+	if err != nil {
+		return "", err
+	}
+	err = collection.FindOne(ctx, bson.M{"_id": idhex}).Decode(&mclient)
+	if err != nil {
+		return "", entity.ErrNotFound
+	}
+	return mclient.Clientname, nil
+}

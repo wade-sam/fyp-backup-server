@@ -6,6 +6,7 @@ import (
 
 type Reader interface {
 	Get(name string) (*entity.Policy, error)
+	GetName(name string) (string, error)
 	List() ([]*entity.Policy, error)
 }
 
@@ -29,6 +30,7 @@ type Repository interface {
 
 type UseCase interface {
 	GetPolicy(name string) (*entity.Policy, error)
+	GetPolicyName(id string) (string, error)
 	ListPolicies() ([]*entity.Policy, error)
 	CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup, clients []string) (string, error)
 	UpdatePolicy(policy *entity.Policy) error

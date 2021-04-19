@@ -27,6 +27,10 @@ func (s *Service) GetPolicy(name string) (*entity.Policy, error) {
 	return s.repo.Get(name)
 }
 
+func (s *Service) GetPolicyName(id string) (string, error) {
+	return s.repo.GetName(id)
+}
+
 func (s *Service) ListPolicies() ([]*entity.Policy, error) {
 	result, err := s.repo.List()
 	if result == nil {
@@ -43,13 +47,13 @@ func (s *Service) UpdatePolicy(policy *entity.Policy) error {
 	if err != nil {
 		return entity.ErrInvalidEntity
 	}
-	r, err := s.GetPolicy(policy.PolicyID)
-	if r == nil {
-		return entity.ErrNotFound
-	}
-	if err != nil {
-		return err
-	}
+	// r, err := s.GetPolicy(policy.PolicyID)
+	// if r == nil {
+	// 	return entity.ErrNotFound
+	// }
+	// if err != nil {
+	// 	return err
+	// }
 	return s.repo.Update(policy)
 }
 

@@ -30,9 +30,10 @@ type MGPolicy struct {
 type MGBackupRun struct {
 	BackupID           string               `bson:"id"`
 	Status             string               `bson:"status"`
+	Date               string               `bson:"date"`
 	Type               string               `bson:"type"`
 	RunTime            string               `bson:"runtime"`
-	Expiry             int                  `bson:"expirydate"`
+	Expiry             string               `bson:"expirydate"`
 	SuccessfullClients []primitive.ObjectID `bson:"successclientruns"`
 	FailedClients      []primitive.ObjectID `bson:"failedclientruns"`
 }

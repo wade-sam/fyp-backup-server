@@ -4,17 +4,23 @@ import (
 	"context"
 	"fmt"
 	"log"
+
+	"net/http"
 	"time"
 
 	mg "github.com/wade-sam/fyp-backup-server/Infrastructure/Repositories/mongo"
 	rb "github.com/wade-sam/fyp-backup-server/Infrastructure/Repositories/rabbit"
+
+	"github.com/wade-sam/fyp-backup-server/api/handler"
 	"github.com/wade-sam/fyp-backup-server/rabbitBus"
 	"github.com/wade-sam/fyp-backup-server/usecase/client"
 	cs "github.com/wade-sam/fyp-backup-server/usecase/client"
 	"github.com/wade-sam/fyp-backup-server/usecase/policy"
 
 	bs "github.com/wade-sam/fyp-backup-server/usecase/backup"
-	//ds "github.com/wade-sam/fyp-backup-server/usecase/dispatcher"
+
+	"github.com/gorilla/mux"
+	ds "github.com/wade-sam/fyp-backup-server/usecase/dispatcher"
 	ps "github.com/wade-sam/fyp-backup-server/usecase/policy"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -72,6 +78,13 @@ func main() {
 	BackupMongo := mg.NewBackupMongo(client, "maindb", "backup_collection", 10)
 	broker := rb.NewBroker(configuration, producerConf, consumerConf, bus)
 
+	//Initialise Services
+	clientService := cs.NewService(ClientsRepo)
+	policyService := ps.NewService(PolicyMongo)
+	dispatchService := ds.NewService(broker, bus)
+	//policy, err := setupClientPolicy(policyService, clientService)
+	backup := bs.NewService(ClientsRepo, PolicyMongo, BackupMongo, broker, bus)
+
 	err = broker.Connect()
 	if err != nil {
 		log.Fatal(err)
@@ -79,27 +92,54 @@ func main() {
 	consumer_chan, err := broker.Start()
 	go broker.Consume(consumer_chan)
 
-	clientService := cs.NewService(ClientsRepo)
-	policyServce := ps.NewService(PolicyMongo)
-	policy, err := setupClientPolicy(policyServce, clientService)
-	//	policy, err := setupIncClientPolicy(policyServce, clientService)
-	//fmt.Println(policy)
-	// policy, err := policyServce.GetPolicy("603d7a904b9ac22b561fdcbb")
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// fmt.Println(policy)
+	//Initialise router
+	router := mux.NewRouter().StrictSlash(true)
+	router.Use(CORS)
+	handler.MakeClientHandlers(router, clientService, policyService, dispatchService)
+	handler.MakePolicyHolders(router, clientService, policyService)
+	handler.MakeBackupHandlers(router, clientService, policyService, backup)
+	http.Handle("/", router)
 
-	backup := bs.NewService(ClientsRepo, PolicyMongo, BackupMongo, broker, bus)
-	err = backup.StartBackup(policy, "Full")
-	if err != nil {
-		fmt.Println(err)
-	}
+	log.Fatal(http.ListenAndServe(":8000", router))
+
+	policy, err := setupIncClientPolicy(policyService, clientService)
+	fmt.Println(policy)
+	//returnPolicy, err := policyService.GetPolicy(policy)
+	//if err != nil {
+	//	log.Println(err)
+	//}
+	//fmt.Println(returnPolicy)
+
+	// err = backup.StartBackup(policy, "Full")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
 	// dispatcherService := ds.NewService(broker, bus)
 	// // fmt.Println("starting dispatch")
 	// clientname, err := dispatcherService.SearchForNewClient()
 	// scanresult, err := dispatcherService.GetDirectoryScan(clientname)
 	// fmt.Println("client name is: ", scanresult)
+}
+
+func CORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// Set headers
+		w.Header().Set("Access-Control-Allow-Headers:", "*")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "*")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		fmt.Println("ok")
+
+		// Next
+		next.ServeHTTP(w, r)
+		return
+	})
 }
 
 func setupClientPolicy(p *policy.Service, c *client.Service) (string, error) {
@@ -124,11 +164,13 @@ func setupIncClientPolicy(p *policy.Service, c *client.Service) (string, error) 
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("Created client", client)
 	IncBackup := []string{"Monday", "Friday"}
 	FullBackup := []string{"Sunday", "Tuesday"}
 	clients := []string{client}
 	policy, err := p.CreatePolicy("Friday Backup", "both", 10, FullBackup, IncBackup, clients)
 	if err != nil {
+		log.Println(err)
 		return "", err
 	}
 	rclient, _ := c.GetClient(client)

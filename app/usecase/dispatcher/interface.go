@@ -1,6 +1,7 @@
 package dispatcher
 
 import (
+	"github.com/wade-sam/fyp-backup-server/entity"
 	"github.com/wade-sam/fyp-backup-server/rabbitBus"
 )
 
@@ -24,7 +25,7 @@ type Repository interface {
 
 type UseCase interface {
 	SearchForNewClient() (string, error)
-	GetDirectoryScan(client string) //Return Directory scan struct
+	GetDirectoryScan(client string) (*entity.Directory, error) //Return Directory scan struct
 	// AddPolicyToClient(consumerID, policyID []string) error
 	// RemovePolicyFromClient(client string, policy []string) error
 	// RemoveClientFromPolicy(client []string, policy string) error

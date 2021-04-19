@@ -2,14 +2,20 @@ package entity
 
 type BackupRun struct {
 	//PolicyName string
-	ID      string
-	Type    string
-	Date    string
-	Clients []*ClientRun
-	Status  string
+	ID                 string
+	Type               string
+	Date               string
+	Expiry             string
+	RunTime            string
+	Clients            []*ClientRun
+	SuccessFullClients []string
+	FailedClients      []string
+	Status             string
 }
 
 type ClientRun struct {
+	Policy          string
+	Client          string
 	ID              string
 	Name            string
 	Status          string
@@ -22,6 +28,11 @@ type ClientFile struct {
 	ID       string `bson:"fileid"`
 	Status   string `bson:"status"`
 	Checksum string `bson:"checksum"`
+}
+
+type ClientFileHolder struct {
+	Type string
+	File *ClientFile
 }
 
 func NewBackupRun(policyname, Type string) (*BackupRun, error) {

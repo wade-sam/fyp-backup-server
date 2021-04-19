@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -70,7 +71,7 @@ func (s *Service) StartBackup(name, backuptype string) error {
 	if err != nil {
 		return nil
 	}
-	cbm, err := s.bus.Subscribe("clientfile")
+	cbm, err := s.bus.Subscribe("file")
 	if err != nil {
 		return nil
 	}
@@ -108,6 +109,7 @@ func (s *Service) StartBackup(name, backuptype string) error {
 	if err != nil {
 		return nil
 	}
+
 	jobID, err := job.handleStorageNodeResponse(sni)
 	if err != nil {
 		return err
@@ -118,40 +120,68 @@ func (s *Service) StartBackup(name, backuptype string) error {
 	//Add backuprun to policy
 
 	for i := range clients {
-		err := s.rabbit.StartBackup(clients[i].ConsumerID, job.job.ID, clients[i].Clientname, backuptype, clients[i].Ignorepath)
-		if err != nil {
-			return err
-		}
-		fmt.Println("BACKUP reached", i)
 		newclient, err := entity.NewClientRun(clients[i].Clientname)
 		job.job.Clients = append(job.job.Clients, newclient)
+		log.Println("CLIENTS: ", job.job.Clients)
+		err = s.rabbit.StartBackup(clients[i].ConsumerID, job.job.ID, clients[i].Clientname, backuptype, clients[i].Ignorepath)
+		if err != nil {
+			newclient.Status = "Failed"
+			//return err
+		} else {
+			fmt.Println("BACKUP reached", i)
 
-		go job.handleClientMessage(cbm, clients[i].Clientname)
-		err = job.handleStorageNodeMessage(snm, clients[i].Clientname)
-		if err != nil {
-			log.Println("Error", err)
+			err = job.handleMessage(cbm, clients[i].Clientname)
+			//err = job.handleStorageNodeMessage(snm, clients[i].Clientname)
+			if err != nil {
+				log.Println("Error", err)
+				newclient.Status = "Failed"
+			}
+			id, err := s.backup.Create(newclient)
+			if err != nil {
+				log.Println("ERROR:", err)
+				newclient.Status = "Failed"
+			}
+			newclient.ID = id
+			newclient.Status = "Success"
 		}
-		id, err := s.backup.Create(newclient)
-		if err != nil {
-			return err
-		}
-		newclient.ID = id
-		// client, err := s.client.Get(policy.Clients[i])
-		// if err != nil {
-		// 	return err
-		// }
-		// s.rabbit.StartBackup(client.ConsumerID, "storagenode", backuptype, client.Ignorepath)
-		// select {}
 	}
-	policy.AddBackupRun(job.job)
-	err = s.policy.Update(policy)
+	backupstruct, err := job.finaliseBackupCompletion(policy.Retention)
 	if err != nil {
+		log.Println("ERROR finaliseBackupCompletion", err)
+	}
+	err = policy.AddBackupRun(backupstruct)
+	if err != nil {
+		log.Println("ERROR:", err)
+		return err
+	}
+	//log.Println("JOB", policy.BackupRun)
+	err = s.policy.AddBackupRun(policy.PolicyID, backupstruct)
+	if err != nil {
+		log.Println("ERROR:", err)
 		return err
 	}
 
 	//backuprun, err := entity.NewBackupRun()
-
+	log.Println("BACKUP SUCCESFULL")
 	return nil
+}
+
+func (bj *Backup) finaliseBackupCompletion(retention int) (*entity.Backups, error) {
+	currentTime := time.Now()
+	expiry := currentTime.AddDate(0, 0, retention)
+	date := expiry.Format("01-02-2006")
+	var success []string
+	var fail []string
+	//log.Println(currentTime, "retention:", policy.Retention, expiry)
+	for _, j := range bj.job.Clients {
+		if j.Status == "Success" {
+			success = append(success, j.ID)
+		} else {
+			fail = append(fail, j.ID)
+		}
+	}
+	b := entity.NewBackup(bj.job.ID, bj.job.Type, currentTime.Format("01-02-2006"), date, currentTime.Format("15:04:05"), success, fail)
+	return b, nil
 }
 
 func checkbackupType(days []string) bool {
@@ -180,61 +210,77 @@ func (bj *Backup) handleStorageNodeResponse(channel rabbitBus.EventChannel) (str
 	return "", entity.ErrTimeOut
 }
 
-//Handles Initialising New clients and the files to expect from the file
-// func (bj *Backup) handleClientSchedule(channel rabbitBus.EventChannel, client string) error {
-// 	for i := 1; i < 10000; i++ {
-// 		select {
-// 		case msg := <-channel:
-// 			newclient, err := entity.NewClientRun(client)
-// 			if err != nil {
-// 				return nil
-// 			}
-// 			files := make(map[string]entity.File)
-// 			mapstructure.Decode(msg.Data, &files)
-// 			for i, j := range files {
-// 				file, err := entity.NewClientFile(files[i].Path, &j)
-// 				if err != nil {
-// 					return err
-// 				}
-// 				newclient.Files[file.ID] = file
-// 			}
-// 			bj.job.Clients = append(bj.job.Clients, newclient)
-// 			close(channel)
-// 			return nil
-// 		default:
-// 			time.Sleep(2 * time.Second)
-// 		}
-// 	}
-// 	close(channel)
-// 	return entity.ErrFileNotFound
-// }
-
-//handles All the messages that come in from clients, matching them and updating status on them
-func (bj *Backup) handleClientMessage(channel rabbitBus.EventChannel, client string) {
-	//newclient, err := entity.NewClientRun(client)
-	//bj.job.Clients = append(bj.job.Clients, newclient)
+func (bj *Backup) handleMessage(channel rabbitBus.EventChannel, client string) error {
 	foundClient, err := bj.job.GetClient(client)
-
 	if err != nil {
 		log.Println(err)
 	}
-	fmt.Println("Found Client", client)
+	clmessage := make(chan *entity.ClientFile)
+	snmessage := make(chan *entity.ClientFile)
+	mutex := &sync.Mutex{}
+	go bj.handleClientMessage(mutex, clmessage, foundClient)
+	go bj.handleStorageNodeMessage(mutex, snmessage, foundClient)
+	for msg := range channel {
+		var data entity.ClientFileHolder
+		err := mapstructure.Decode(msg.Data, &data)
+		if err != nil {
+			return err
+		}
+		if data.File.ID == "Completion" && data.File.Status == "Success" {
+			err := checkClientIsConsistent(foundClient.SuccesfullFiles, foundClient.FailedFiles)
+			if err != nil {
+				log.Println("ERROR Failed backup inconsistent!!", err)
+				err = bj.bus.Unsubscribe("file", channel)
+				if err != nil {
+					log.Println("ERROR:", err)
+					return err
+				}
+				close(clmessage)
+				close(snmessage)
+				return err
+			}
+			log.Println("Storage Node has finished Client: ", client, "Succesfully")
+			close(clmessage)
+			close(snmessage)
+			break
+
+		}
+		if data.Type == "clientfile" {
+			clmessage <- data.File
+		} else if data.Type == "storagenodefile" {
+			snmessage <- data.File
+		}
+	}
+	err = bj.bus.Unsubscribe("file", channel)
+	if err != nil {
+		log.Println("ERROR:", err)
+		return err
+	}
+	return nil
+}
+
+//handles All the messages that come in from clients, matching them and updating status on them
+func (bj *Backup) handleClientMessage(lock *sync.Mutex, channel chan (*entity.ClientFile), client *entity.ClientRun) {
+	//newclient, err := entity.NewClientRun(client)
+	//bj.job.Clients = append(bj.job.Clients, newclient)
+
 	for msg := range channel {
 
-		var file = entity.ClientFile{}
-		mapstructure.Decode(msg.Data, &file)
-		fmt.Println("recieved message from CLIENT: ", file.ID)
-		if file.Status == "Finished" {
-			fmt.Println("recieved complete message from client: ", file.ID)
-			err := bj.bus.Unsubscribe("clientfile", channel)
-			if err != nil {
-				log.Println("ERROR unsubscribing", err)
-			}
+		//var file = entity.ClientFile{}
+		//mapstructure.Decode(msg.Data, &file)
+		fmt.Println("recieved message from CLIENT: ", msg.ID)
+		if msg.Status == "Finished" {
+			fmt.Println("recieved complete message from client: ", msg.ID)
+			//err := bj.bus.Unsubscribe("clientfile", channel)
 			break
-		} else if file.Status == "Success" {
-			foundClient.SuccesfullFiles[file.ID] = &file
-		} else if file.Status == "Failed" {
-			foundClient.FailedFiles[file.ID] = &file
+		} else if msg.Status == "Success" {
+			lock.Lock()
+			client.SuccesfullFiles[msg.ID] = msg
+			lock.Unlock()
+		} else if msg.Status == "Failed" {
+			lock.Lock()
+			client.FailedFiles[msg.ID] = msg
+			lock.Unlock()
 		}
 
 	}
@@ -243,45 +289,33 @@ func (bj *Backup) handleClientMessage(channel rabbitBus.EventChannel, client str
 }
 
 //handles all messages that come in from the storagenode. It either marks files as confirmed or unsuccesfull
-func (bj *Backup) handleStorageNodeMessage(channel rabbitBus.EventChannel, client string) error {
-	foundClient, err := bj.job.GetClient(client)
-	if err != nil {
-		log.Println(err)
-	}
-	fmt.Println("Found Client", client)
+func (bj *Backup) handleStorageNodeMessage(lock *sync.Mutex, channel chan (*entity.ClientFile), client *entity.ClientRun) error {
 	for msg := range channel {
-		var file = entity.ClientFile{}
-		mapstructure.Decode(msg.Data, &file)
-		if file.ID == "Completion" && file.Status == "Success" {
-			err := checkClientIsConsistent(foundClient.SuccesfullFiles, foundClient.FailedFiles)
+
+		if msg.ID == "Completion" && msg.Status == "Success" {
+			lock.Lock()
+			err := checkClientIsConsistent(client.SuccesfullFiles, client.FailedFiles)
 			if err != nil {
-				errs := bj.bus.Unsubscribe("storagenodefile", channel)
-				if errs != nil {
-					log.Println("ERROR unsubscribing", err)
-					return err
-				}
+				lock.Unlock()
 				return err
 			}
-			errs := bj.bus.Unsubscribe("storagenodefile", channel)
-			if errs != nil {
-				log.Println("ERROR unsubscribing", err)
-				return err
-			}
+			lock.Unlock()
 			log.Println("Storage Node has finished Client: ", client, "Succesfully")
 			break
 		}
-		exits, err := foundClient.GetFile(file.ID)
+		lock.Lock()
+		exits, err := client.GetFile(msg.ID)
+		lock.Unlock()
 		if err != nil {
-			log.Println("Could not find: ", msg.Data)
+			log.Println("Could not find: ", msg)
 			return err
 		}
-		if exits.Checksum == file.Checksum {
-			file.ChangeStatus("Complete")
-			log.Println("recieved file from STORAGE NODE: ", file.ID)
+		if exits.Checksum == msg.Checksum {
+			msg.ChangeStatus("Complete")
+			log.Println("recieved file from STORAGE NODE: ", msg.ID)
 		} else {
 			return err
 		}
-
 	}
 	return nil
 }

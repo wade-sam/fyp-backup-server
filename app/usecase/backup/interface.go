@@ -7,6 +7,7 @@ import (
 
 type PolicyRepository interface {
 	Get(name string) (*entity.Policy, error)
+	AddBackupRun(policyid string, backuprun *entity.Backups) error
 	Update(policy *entity.Policy) error
 }
 
@@ -29,5 +30,5 @@ type BusRepository interface {
 }
 type UseCase interface {
 	StartBackup(policy, Type string) error
-	StartIncrementalBackup(policy string) error
+	//StartIncrementalBackup(policy string) error
 }
