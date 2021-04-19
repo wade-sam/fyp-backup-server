@@ -1,0 +1,10 @@
+{
+    "name": "Container 1",
+    "dockerComposeFile": ["../../docker-compose.yml"],
+    "service": "database",
+    "shutdownAction": "none",
+    "extensions": ["mongodb.mongodb-vscode"],
+  // Open the sub-folder with the source code
+    "workspaceFolder": "/data/db"
+}
+
