@@ -2,28 +2,28 @@ import React from 'react';
 import '../App.css';
 import { Link } from 'react-router-dom'
 
-const PolicyItem = ({id, name, clients, type, runs}) =>{
+const PolicyItem = (props) =>{
     var clientcount = 0;
     var backupcount = 0;
-    for (const c in clients){
+    for (const c in props.policy.clients){
         clientcount = clientcount + 1;
     }
-    console.log(clients)
-    if (runs != null){
-        for (const c in runs){
+    console.log(props.policy.clients)
+    if (props.policy.backuprun != null){
+        for (const c in props.policy.backuprun){
             backupcount = backupcount + 1;
         }
     }
     return(
         <div className="backup-item-grid-container">
-        <p className="backup-label-1">{type}</p>
+        <p className="backup-label-1">{props.policy.type}</p>
         <div className="backup-item-name-1">
-    <p>{name}</p>
+            <p>{props.policy.policyname}</p>
         </div>
         <div className="dropdown">
         <button className="backup-options">...</button>
         <div className="dropdowncontent">
-            <Link to={`/clients/${id}`} className="dropdown-item">View Clients</Link>
+            <Link to={`/clients/${props.policy.id}`} className="dropdown-item">View Clients</Link>
             <li>Run Policy</li>
             <li>Delete Policy</li>
             <li>Edit Policy</li>

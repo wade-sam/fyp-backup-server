@@ -14,8 +14,8 @@ nav{
   justify-content: space-around;
   align-items: center;
 
-  min-height: 7vh;
-  max-height: 7vh;
+  min-height: 3.5rem;
+  max-height: 3.5rem;
   background: #344B47;
   color:white;
 }
@@ -48,13 +48,23 @@ nav{
 
 .grid-container{
   display: grid;
-  grid-template-columns: repeat(3, 368px);
+  grid-template-columns: repeat(1, 1104px);
   grid-auto-rows: 114px;
   row-gap: 1.5rem;
   column-gap: 1.5rem;
   justify-content: center;
   align-content: center;
   
+}
+.grid-container-list{
+  display: grid;
+  grid-template-columns: repeat(3, 368px);
+  grid-auto-rows: 114px;
+  row-gap: 1.5rem;
+  column-gap: 1.5rem;
+  justify-content: center;
+  align-content: center;
+  /* grid-column: 1 / -1; */
 }
 
 .backup-item-grid-container{
@@ -75,6 +85,7 @@ nav{
   grid-row: 1;
   border-radius: 0.25em;
   text-decoration: none;
+  /* margin-bottom: 10rem; */
 }
 .backup-item-name-1{
   margin: 0px;
