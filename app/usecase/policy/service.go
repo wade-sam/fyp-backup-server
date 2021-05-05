@@ -14,9 +14,9 @@ func NewService(r Repository) *Service {
 	}
 }
 
-func (s *Service) CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup []string, clients []string) (string, error) {
+func (s *Service) CreatePolicy(policyname, runtime, backupType string, retention int, fullbackup, incrementalbackup []string, clients []string) (string, error) {
 
-	policy, err := entity.NewPolicy(policyname, backupType, retention, fullbackup, incrementalbackup, clients)
+	policy, err := entity.NewPolicy(policyname, backupType, runtime, retention, fullbackup, incrementalbackup, clients)
 	if err != nil {
 		return "", err
 	}

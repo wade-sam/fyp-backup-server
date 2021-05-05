@@ -13,12 +13,11 @@ import (
 
 	"github.com/wade-sam/fyp-backup-server/api/handler"
 	"github.com/wade-sam/fyp-backup-server/rabbitBus"
-	"github.com/wade-sam/fyp-backup-server/usecase/client"
 	cs "github.com/wade-sam/fyp-backup-server/usecase/client"
-	"github.com/wade-sam/fyp-backup-server/usecase/policy"
 
 	bs "github.com/wade-sam/fyp-backup-server/usecase/backup"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	ds "github.com/wade-sam/fyp-backup-server/usecase/dispatcher"
 	ps "github.com/wade-sam/fyp-backup-server/usecase/policy"
@@ -94,23 +93,23 @@ func main() {
 
 	//Initialise router
 	router := mux.NewRouter().StrictSlash(true)
-	router.Use(CORS)
+	//router.Use(CORS)
 	handler.MakeClientHandlers(router, clientService, policyService, dispatchService)
 	handler.MakePolicyHolders(router, clientService, policyService)
 	handler.MakeBackupHandlers(router, clientService, policyService, backup)
 	http.Handle("/", router)
 
-	log.Fatal(http.ListenAndServe(":8000", router))
+	log.Fatal(http.ListenAndServe(":8000", handlers.CORS(handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"}), handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"}), handlers.AllowedOrigins([]string{"http://localhost:3000"}))(router)))
 
-	policy, err := setupIncClientPolicy(policyService, clientService)
-	fmt.Println(policy)
+	// policy, err := setupIncClientPolicy(policyService, clientService)
+	// fmt.Println(policy)
 	//returnPolicy, err := policyService.GetPolicy(policy)
 	//if err != nil {
 	//	log.Println(err)
 	//}
 	//fmt.Println(returnPolicy)
 
-	// err = backup.StartBackup(policy, "Full")
+	// err = backup.StartBackup("607ed003083610a78abad050", "Full")
 	// if err != nil {
 	// 	fmt.Println(err)
 	// }
@@ -125,12 +124,21 @@ func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// Set headers
-		w.Header().Set("Access-Control-Allow-Headers:", "*")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "*")
-
+		// w.Header().Set("Access-Control-Allow-Headers:", "Origin, Content-Type, X-Auth-Token, Authorization")
+		// w.Header().Set("Access-Control-Allow-Origin", "*")
+		// w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+		// w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Headers:", "Origin, Content-Type, X-Auth-Token, Authorization")
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+		w.Header().Set("Content-Type", "application/json")
 		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+			log.Println("REACHED")
+			// w.Header().Set("Access-Control-Allow-Headers:", "Origin, Content-Type, X-Auth-Token, Authorization")
+			// w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+			// w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+			// w.Header().Set("Content-Type", "application/json")
+			//w.WriteHeader(http.StatusOK)
 			return
 		}
 
@@ -138,43 +146,43 @@ func CORS(next http.Handler) http.Handler {
 
 		// Next
 		next.ServeHTTP(w, r)
-		return
+		//return
 	})
 }
 
-func setupClientPolicy(p *policy.Service, c *client.Service) (string, error) {
-	client, err := c.CreateClient("samwade", "newclient")
-	if err != nil {
-		return "", err
-	}
-	fullbackup := []string{"Monday", "Friday"}
-	clients := []string{client}
-	policy, err := p.CreatePolicy("Friday Backup", "full", 10, fullbackup, []string{}, clients)
-	if err != nil {
-		return "", err
-	}
-	rclient, _ := c.GetClient(client)
-	rclient.AddPolicy(policy)
-	c.UpdateClient(rclient)
-	return policy, nil
-}
+// func setupClientPolicy(p *policy.Service, c *client.Service) (string, error) {
+// 	client, err := c.CreateClient("samwade", "newclient")
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	fullbackup := []string{"Monday", "Friday"}
+// 	clients := []string{client}
+// 	policy, err := p.CreatePolicy("Friday Backup", "full", 10, fullbackup, []string{}, clients)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	rclient, _ := c.GetClient(client)
+// 	rclient.AddPolicy(policy)
+// 	c.UpdateClient(rclient)
+// 	return policy, nil
+// }
 
-func setupIncClientPolicy(p *policy.Service, c *client.Service) (string, error) {
-	client, err := c.CreateClient("samwade", "newclient")
-	if err != nil {
-		return "", err
-	}
-	fmt.Println("Created client", client)
-	IncBackup := []string{"Monday", "Friday"}
-	FullBackup := []string{"Sunday", "Tuesday"}
-	clients := []string{client}
-	policy, err := p.CreatePolicy("Friday Backup", "both", 10, FullBackup, IncBackup, clients)
-	if err != nil {
-		log.Println(err)
-		return "", err
-	}
-	rclient, _ := c.GetClient(client)
-	rclient.AddPolicy(policy)
-	c.UpdateClient(rclient)
-	return policy, nil
-}
+// func setupIncClientPolicy(p *policy.Service, c *client.Service) (string, error) {
+// 	client, err := c.CreateClient("samwade", "newclient")
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	fmt.Println("Created client", client)
+// 	IncBackup := []string{"Monday", "Friday"}
+// 	FullBackup := []string{"Sunday", "Tuesday"}
+// 	clients := []string{client}
+// 	policy, err := p.CreatePolicy("Friday Backup", "both", 10, FullBackup, IncBackup, clients)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return "", err
+// 	}
+// 	rclient, _ := c.GetClient(client)
+// 	rclient.AddPolicy(policy)
+// 	c.UpdateClient(rclient)
+// 	return policy, nil
+// }

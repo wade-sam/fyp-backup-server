@@ -81,10 +81,13 @@ func createPolicy(client client.UseCase, policy policy.UseCase) http.Handler {
 		}
 		var policyinput entity.Policy
 		//holdClients := policyinput.Clients
-
+		log.Println(input)
 		mapstructure.Decode(input, &policyinput)
-		log.Println("policy", policyinput)
-		id, err := policy.CreatePolicy(input.Policyname, input.Type, input.Retention, input.Fullbackup, input.IncBackup, input.Clients[1])
+		var inputClients []string
+		for _, i := range input.Clients {
+			inputClients = append(inputClients, i[1])
+		}
+		id, err := policy.CreatePolicy(input.Policyname, input.RunTime, input.Type, input.Retention, input.Fullbackup, input.IncBackup, inputClients)
 		if err != nil {
 			log.Println("CREATE ERROR", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -228,6 +231,7 @@ func listPolicies(policy policy.UseCase, client client.UseCase) http.Handler {
 						w.Write([]byte("errorMessage"))
 						return
 					}
+					log.Println(j)
 					e := policy.UpdatePolicy(j)
 					if e != nil {
 						log.Println("REMOVE CLIENT", e)
@@ -244,8 +248,14 @@ func listPolicies(policy policy.UseCase, client client.UseCase) http.Handler {
 				clientnames = append(clientnames, c)
 			}
 			var jPolicy presenter.Policy
+
 			mapstructure.Decode(j, &jPolicy)
+			//presenterbackuprun := presenter.BackupRun{}
 			jPolicy.Clients = clientnames
+			for _, b := range j.BackupRun {
+				//presenterbackuprun
+				log.Println("API BACKUPRUN", b)
+			}
 			jpolicies = append(jpolicies, &jPolicy)
 		}
 

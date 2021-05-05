@@ -108,22 +108,23 @@ func (c *PolicyMongo) GetName(name string) (string, error) {
 
 func (p *PolicyMongo) AddBackupRun(id string, backupRun *entity.Backups) error {
 
-	mbackuprun, err := BackupRunToMGBackupRun(backupRun)
-	if err != nil {
-		log.Println("error", err)
-		return entity.ErrCouldNotUpdateItem
-	}
+	//mbackuprun, err := BackupRunToMGBackupRun(backupRun)
+	// if err != nil {
+	// 	log.Println("error", err)
+	// 	return entity.ErrCouldNotUpdateItem
+	// }
 	policy, err := p.Get(id)
 	if err != nil {
 		return entity.ErrCouldNotUpdateItem
 	}
-	log.Println("AddBackupRun", mbackuprun)
+	policy.BackupRun = append(policy.BackupRun, backupRun)
+	log.Println("OBJ:", policy.BackupRun)
 	mpolicy, err := PolicyToMpolicy(policy)
 	if err != nil {
 		return entity.ErrCouldNotUpdateItem
 	}
-	mpolicy.PolicyRuns = append(mpolicy.PolicyRuns, mbackuprun)
-
+	//mpolicy.PolicyRuns = append(mpolicy.PolicyRuns, *mbackuprun)
+	log.Println("Current Policies policy runs", mpolicy.PolicyRuns[0])
 	ctx, cancel := context.WithTimeout(context.Background(), p.timeout)
 	defer cancel()
 	collection := p.db.Database(p.database).Collection(p.collection)
@@ -135,6 +136,9 @@ func (p *PolicyMongo) AddBackupRun(id string, backupRun *entity.Backups) error {
 	if err != nil {
 		return entity.ErrCouldNotUpdateItem
 	}
+	presult, err := p.Get(id)
+	//log.Println(presult)
+	log.Println("Return Result", presult)
 	return nil
 }
 
@@ -181,10 +185,10 @@ func MpolicyToPolicy(mpolicy *MGPolicy) (*entity.Policy, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	policy := entity.Policy{
 		PolicyID:   mpolicy.PolicyID.Hex(),
 		Policyname: mpolicy.Policyname,
+		RunTime:    mpolicy.RunTime,
 		Clients:    clients,
 		Retention:  mpolicy.Retention,
 		State:      mpolicy.State,
@@ -192,6 +196,16 @@ func MpolicyToPolicy(mpolicy *MGPolicy) (*entity.Policy, error) {
 		Fullbackup: mpolicy.Fullbackup,
 		IncBackup:  mpolicy.IncBackup,
 	}
+
+	for i := range mpolicy.PolicyRuns {
+		runs, err := MGBackupRunToBackupRun(&mpolicy.PolicyRuns[i])
+		if err != nil {
+			return nil, err
+		}
+		policy.BackupRun = append(policy.BackupRun, runs)
+		log.Println("BACKUP RUN", runs)
+	}
+
 	return &policy, nil
 
 }
@@ -244,6 +258,7 @@ func BackupRunToMGBackupRun(backup *entity.Backups) (*MGBackupRun, error) {
 	MBackupRun.SuccessfullClients = successClients
 
 	MBackupRun.BackupID = backup.ID
+	MBackupRun.Status = backup.Status
 	MBackupRun.Date = backup.Date
 	MBackupRun.Status = backup.Status
 	MBackupRun.Type = backup.Type
@@ -266,13 +281,39 @@ func PolicyToMpolicy(policy *entity.Policy) (*MGPolicy, error) {
 		id, _ := primitive.ObjectIDFromHex(policy.PolicyID)
 		mgpolicy.PolicyID = id
 	}
+	//var mgpolicyruns []MGBackupRun
 	mgpolicy.Policyname = policy.Policyname
 	mgpolicy.Clients = clients
+	mgpolicy.RunTime = policy.RunTime
 	mgpolicy.Retention = policy.Retention
 	mgpolicy.State = policy.State
 	mgpolicy.Type = policy.Type
 	mgpolicy.Fullbackup = policy.Fullbackup
 	mgpolicy.IncBackup = policy.IncBackup
+	//mgpolicy.PolicyRuns = mgpolicyruns
+
+	for i := range policy.BackupRun {
+		runs, err := BackupRunToMGBackupRun(policy.BackupRun[i])
+		if err != nil {
+			return nil, err
+		}
+		mgpolicy.PolicyRuns = append(mgpolicy.PolicyRuns, *runs)
+		log.Println("BACKUP RUN", runs)
+		// sclients, _ := clientstringToHex(i.SuccessFullClients)
+		// fclients, _ := clientstringToHex(i.FailedClients)
+		// holder := MGBackupRun{
+		// 	BackupID:           i.ID,
+		// 	Status:             i.Status,
+		// 	Date:               i.Date,
+		// 	Type:               i.Type,
+		// 	RunTime:            i.RunTime,
+		// 	Expiry:             i.Expiry,
+		// 	SuccessfullClients: sclients,
+		// 	FailedClients:      fclients,
+		// }
+		// mgpolicyruns = append(mgpolicyruns, holder)
+	}
+
 	return &mgpolicy, nil
 
 }

@@ -4,9 +4,11 @@ import "encoding/json"
 
 type Directory struct {
 	Name       string                `json:"name,omitempty"`
+	Path       string                `json:"path,ommitempty"`
 	Properties []string              `json:"properties,omitempty"`
 	Files      []*File               `json:"files,omitempty"`
 	Folders    map[string]*Directory `json:"folders,omitempty"`
+	NewFolders []*Directory          `json:"children, ommitempty"`
 }
 
 func NewDirectory(name string) *Directory {

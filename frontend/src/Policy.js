@@ -3,11 +3,12 @@ import './App.css';
 import PolicyItem from './components/policy-item'
 import PolicyList from './PolicyList'
 import React, {useState, useEffect, useContext}from 'react';
-import {PolicyContext, fetchAll} from './PolicyContext';
+import {ClientContext, fetchAll} from './ClientContext';
 
 function Policy({ match }) {
   console.log("HELLO")
-  const [policies, setPolicies] = useContext(PolicyContext);
+  const {policies, setPolicies} = useContext(ClientContext);
+  //const [policies, setPolicies] = useContext(ClientContext);
   useEffect(() =>{
     fetchAll();
   },[]);

@@ -14,6 +14,7 @@ type BackupRun struct {
 }
 
 type ClientRun struct {
+	Date            string
 	Policy          string
 	Client          string
 	ID              string

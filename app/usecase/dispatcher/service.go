@@ -2,6 +2,7 @@ package dispatcher
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/mitchellh/mapstructure"
@@ -43,16 +44,23 @@ func (s *Service) SearchForNewClient() (string, error) {
 	for i := 1; i < 10; i++ {
 		select {
 		case msg := <-chn:
-			s := ""
-			mapstructure.Decode(msg.Data, &s)
-			fmt.Println("mastructure", s)
-			close(chn)
-			return s, nil
+			client := ""
+			mapstructure.Decode(msg.Data, &client)
+
+			err := s.bus.Unsubscribe("newclient", chn)
+			if err != nil {
+				return "", entity.ErrNoMatchingTopic
+			}
+			log.Println("New Client Found:", client)
+			return client, nil
 		default:
 			time.Sleep(2 * time.Second)
 		}
 	}
-	close(chn)
+	err = s.bus.Unsubscribe("newclient", chn)
+	if err != nil {
+		return "", entity.ErrNoMatchingTopic
+	}
 	fmt.Println("NO NEW CLIENT")
 	return "", entity.ErrNoNewClient
 }

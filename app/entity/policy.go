@@ -6,6 +6,7 @@ type Policy struct {
 	PolicyID   string
 	Policyname string
 	Clients    []string
+	RunTime    string
 	Retention  int
 	State      string
 	Type       string
@@ -25,9 +26,10 @@ type Backups struct {
 	FailedClients      []string
 }
 
-func NewBackup(id, t, d, e, r string, sc, fc []string) *Backups {
+func NewBackup(id, s, t, d, e, r string, sc, fc []string) *Backups {
 	return &Backups{
 		ID:                 id,
+		Status:             s,
 		Type:               t,
 		Date:               d,
 		Expiry:             e,
@@ -37,11 +39,12 @@ func NewBackup(id, t, d, e, r string, sc, fc []string) *Backups {
 	}
 }
 
-func NewPolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup []string, clients []string) (*Policy, error) {
+func NewPolicy(policyname, backupType string, runtime string, retention int, fullbackup, incrementalbackup []string, clients []string) (*Policy, error) {
 	p := &Policy{
 		Policyname: policyname,
 		Clients:    clients,
 		Retention:  retention,
+		RunTime:    runtime,
 		Type:       backupType,
 	}
 
@@ -163,7 +166,7 @@ func (p *Policy) AddState() error {
 }
 
 func (p *Policy) ValidatePolicy() error {
-	if len(p.Clients) == 0 || p.Policyname == "" || p.Type == "" || p.Retention == 0 {
+	if p.Policyname == "" || p.Type == "" || p.Retention == 0 || p.RunTime == "" {
 
 		return ErrInvalidEntity
 	}

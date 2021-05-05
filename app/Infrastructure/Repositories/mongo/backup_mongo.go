@@ -26,10 +26,12 @@ func NewBackupMongo(db *mongo.Client, database, collection string, timeout int) 
 	}
 }
 
-func (b *BackupMongo) Create(clientrun *entity.ClientRun) (string, error) {
+func (b *BackupMongo) Create(clientrun *entity.ClientRun, clientID, policyID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), b.timeout)
 	defer cancel()
 	collection := b.db.Database(b.database).Collection(b.collection)
+	clientrun.Client = clientID
+	clientrun.Policy = policyID
 	mgclientrun, err := ClientRunToMClientRun(clientrun)
 	if err != nil {
 		return "", err
@@ -45,6 +47,29 @@ func (b *BackupMongo) Create(clientrun *entity.ClientRun) (string, error) {
 }
 
 func (b *BackupMongo) ListClientRuns(client string) ([]*entity.ClientRun, error) {
+	var clientruns []*entity.ClientRun
+	var mgclientrun []MGClientRun
+	ctx, cancel := context.WithTimeout(context.Background(), b.timeout)
+	defer cancel()
+	collection := b.db.Database(b.database).Collection(b.collection)
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, entity.ErrCouldNotAddItem
+	}
+	if err = cursor.All(ctx, &mgclientrun); err != nil {
+		return nil, err
+	}
+	for _, i := range mgclientrun {
+		clientrun, err := MClientRunToClientRun(&i)
+		if err != nil {
+			return nil, err
+		}
+		clientruns = append(clientruns, clientrun)
+	}
+	return clientruns, nil
+}
+
+func (b *BackupMongo) ListClientRunsAll() ([]*entity.ClientRun, error) {
 	var clientruns []*entity.ClientRun
 	var mgclientrun []MGClientRun
 	ctx, cancel := context.WithTimeout(context.Background(), b.timeout)
@@ -94,12 +119,17 @@ func ClientRunToMClientRun(clientrun *entity.ClientRun) (*MGClientRun, error) {
 		mgclientrun.ClientRunID = id
 	} else {
 		id, err := primitive.ObjectIDFromHex(clientrun.ID)
+
 		if err != nil {
 			return nil, err
 		}
 		mgclientrun.ClientRunID = id
 	}
+	cid, _ := primitive.ObjectIDFromHex(clientrun.Client)
+	pid, _ := primitive.ObjectIDFromHex(clientrun.Policy)
 	mgclientrun.Status = clientrun.Status
+	mgclientrun.Client = cid
+	mgclientrun.Policy = pid
 	mgclientrun.BackupSuccess = clientrun.SuccesfullFiles
 	mgclientrun.BackupFailure = clientrun.FailedFiles
 	mgclientrun.TotalFiles = clientrun.TotalFiles
@@ -109,9 +139,12 @@ func ClientRunToMClientRun(clientrun *entity.ClientRun) (*MGClientRun, error) {
 func MClientRunToClientRun(Mgclientrun *MGClientRun) (*entity.ClientRun, error) {
 	//clientruns
 	id := Mgclientrun.ClientRunID.Hex()
+	policyID := Mgclientrun.Policy.Hex()
+	clientID := Mgclientrun.Client.Hex()
 	clientrun := entity.ClientRun{
 		ID:              id,
-		Name:            Mgclientrun.ClientName,
+		Client:          clientID,
+		Policy:          policyID,
 		Status:          Mgclientrun.Status,
 		TotalFiles:      Mgclientrun.TotalFiles,
 		SuccesfullFiles: Mgclientrun.BackupSuccess,

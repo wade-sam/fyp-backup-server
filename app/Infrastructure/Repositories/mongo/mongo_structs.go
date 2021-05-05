@@ -19,12 +19,13 @@ type MGPolicy struct {
 	PolicyID   primitive.ObjectID   `bson:"_id"`
 	Policyname string               `bson:"policyname"`
 	Clients    []primitive.ObjectID `bson:"clients"`
+	RunTime    string               `bson:"runtime"`
 	Retention  int                  `bson:"retention"`
 	State      string               `bson:"state"`
 	Type       string               `bson:"type"`
 	Fullbackup []string             `bson:"fullbackup"`
 	IncBackup  []string             `bson:"incbackup"`
-	PolicyRuns []*MGBackupRun       `bson:"policyRuns"`
+	PolicyRuns []MGBackupRun        `bson:"policyRuns"`
 }
 
 type MGBackupRun struct {
@@ -40,7 +41,8 @@ type MGBackupRun struct {
 
 type MGClientRun struct {
 	ClientRunID   primitive.ObjectID            `bson:"_id"`
-	ClientName    string                        `bson:"name"`
+	Client        primitive.ObjectID            `bson:"clientname"`
+	Policy        primitive.ObjectID            `json:"policyname"`
 	Status        string                        `bson:"status"`
 	TotalFiles    int                           `bson:"totalfiles"`
 	BackupSuccess map[string]*entity.ClientFile `bson:"backupsuccess"`

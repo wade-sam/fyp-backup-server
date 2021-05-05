@@ -32,7 +32,7 @@ type UseCase interface {
 	GetPolicy(name string) (*entity.Policy, error)
 	GetPolicyName(id string) (string, error)
 	ListPolicies() ([]*entity.Policy, error)
-	CreatePolicy(policyname, backupType string, retention int, fullbackup, incrementalbackup, clients []string) (string, error)
+	CreatePolicy(policyname, runtime, backupType string, retention int, fullbackup, incrementalbackup []string, clients []string) (string, error)
 	UpdatePolicy(policy *entity.Policy) error
 	DeletePolicy(name string) error
 }

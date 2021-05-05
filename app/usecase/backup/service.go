@@ -48,6 +48,34 @@ func newBackupRun(name, Type string) (*Backup, error) {
 	return &backup, nil
 }
 
+func (s *Service) ListBackups() ([]*entity.ClientRun, error) {
+	result, err := s.backup.ListClientRunsAll()
+
+	if result == nil {
+		return nil, entity.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	var response []*entity.ClientRun
+	for _, i := range result {
+		temp := entity.ClientRun{
+			Policy:     i.Policy,
+			Client:     i.Client,
+			ID:         i.ID,
+			Name:       i.Name,
+			Status:     i.Status,
+			TotalFiles: i.TotalFiles,
+		}
+		response = append(response, &temp)
+	}
+	return response, nil
+}
+
+// func (s *Service) ListBackupsShort()([]*entity.ClientRun, error){
+// 	result, err := s.backup
+// }
+
 /*
 Statistics and metadata regarding the backup are stored in the database, but the files holding
 all information about which files were backed up are stored as a file on the storage node
@@ -136,13 +164,21 @@ func (s *Service) StartBackup(name, backuptype string) error {
 				log.Println("Error", err)
 				newclient.Status = "Failed"
 			}
-			id, err := s.backup.Create(newclient)
+			newclient.Status = "Success"
+			totalFiles := len(newclient.SuccesfullFiles) + len(newclient.FailedFiles)
+			newclient.TotalFiles = totalFiles
+			id, err := s.backup.Create(newclient, clients[i].ID, policy.PolicyID)
 			if err != nil {
 				log.Println("ERROR:", err)
 				newclient.Status = "Failed"
 			}
 			newclient.ID = id
-			newclient.Status = "Success"
+
+			clients[i].Backups = append(clients[i].Backups, id)
+			err = s.client.Update(clients[i])
+			if err != nil {
+				return err
+			}
 		}
 	}
 	backupstruct, err := job.finaliseBackupCompletion(policy.Retention)
@@ -166,6 +202,8 @@ func (s *Service) StartBackup(name, backuptype string) error {
 	return nil
 }
 
+func clientFileDetails()
+
 func (bj *Backup) finaliseBackupCompletion(retention int) (*entity.Backups, error) {
 	currentTime := time.Now()
 	expiry := currentTime.AddDate(0, 0, retention)
@@ -180,7 +218,7 @@ func (bj *Backup) finaliseBackupCompletion(retention int) (*entity.Backups, erro
 			fail = append(fail, j.ID)
 		}
 	}
-	b := entity.NewBackup(bj.job.ID, bj.job.Type, currentTime.Format("01-02-2006"), date, currentTime.Format("15:04:05"), success, fail)
+	b := entity.NewBackup(bj.job.ID, "Completed", bj.job.Type, currentTime.Format("01-02-2006"), date, currentTime.Format("15:04:05"), success, fail)
 	return b, nil
 }
 
@@ -275,6 +313,17 @@ func (bj *Backup) handleClientMessage(lock *sync.Mutex, channel chan (*entity.Cl
 			break
 		} else if msg.Status == "Success" {
 			lock.Lock()
+			exists, err := client.GetFile(msg.ID)
+			if err == nil {
+				log.Println("Storage Node beat me there:", exists.ID)
+				result := checkFileIsConsistent(exists.Checksum, msg.Checksum)
+				if result == true {
+					msg.ChangeStatus("Complete")
+					log.Println("recieved file from STORAGE NODE: ", msg.ID)
+				} else {
+					client.FailedFiles[msg.ID] = msg
+				}
+			}
 			client.SuccesfullFiles[msg.ID] = msg
 			lock.Unlock()
 		} else if msg.Status == "Failed" {
@@ -284,14 +333,14 @@ func (bj *Backup) handleClientMessage(lock *sync.Mutex, channel chan (*entity.Cl
 		}
 
 	}
-	log.Println("Client", client, "has finished")
+	log.Println("Client", "has finished")
 	//fmt.Println("New File", bj.job.Clients[0].Files)
 }
 
 //handles all messages that come in from the storagenode. It either marks files as confirmed or unsuccesfull
 func (bj *Backup) handleStorageNodeMessage(lock *sync.Mutex, channel chan (*entity.ClientFile), client *entity.ClientRun) error {
 	for msg := range channel {
-
+		log.Println("recieved file from STORAGE NODE: ", msg.ID)
 		if msg.ID == "Completion" && msg.Status == "Success" {
 			lock.Lock()
 			err := checkClientIsConsistent(client.SuccesfullFiles, client.FailedFiles)
@@ -300,26 +349,46 @@ func (bj *Backup) handleStorageNodeMessage(lock *sync.Mutex, channel chan (*enti
 				return err
 			}
 			lock.Unlock()
-			log.Println("Storage Node has finished Client: ", client, "Succesfully")
+			log.Println("Storage Node has finished Client: ", "Succesfully")
 			break
 		}
 		lock.Lock()
-		exits, err := client.GetFile(msg.ID)
-		lock.Unlock()
+		exists, err := client.GetFile(msg.ID)
+
 		if err != nil {
 			log.Println("Could not find: ", msg)
-			return err
-		}
-		if exits.Checksum == msg.Checksum {
-			msg.ChangeStatus("Complete")
-			log.Println("recieved file from STORAGE NODE: ", msg.ID)
+			if msg.Status == "Success" {
+				client.SuccesfullFiles[msg.ID] = msg
+			}
+			//return err
 		} else {
-			return err
+			result := checkFileIsConsistent(exists.Checksum, msg.Checksum)
+			if result == true {
+				msg.ChangeStatus("Complete")
+				log.Println("recieved file from STORAGE NODE: ", msg.ID)
+			} else {
+				return err
+			}
 		}
+		lock.Unlock()
+
+		// if exists.Checksum == msg.Checksum {
+		// 	msg.ChangeStatus("Complete")
+		// 	log.Println("recieved file from STORAGE NODE: ", msg.ID)
+		// } else {
+		// 	return err
+		// }
 	}
 	return nil
 }
 
+func checkFileIsConsistent(checksum1, checksum2 string) bool {
+	if checksum1 == checksum2 {
+		return true
+	} else {
+		return false
+	}
+}
 func checkClientIsConsistent(succesful, failure map[string]*entity.ClientFile) error {
 	for _, j := range succesful {
 		if j.Status == "Start" {

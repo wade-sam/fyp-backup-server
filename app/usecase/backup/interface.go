@@ -13,10 +13,13 @@ type PolicyRepository interface {
 
 type ClientRepository interface {
 	Get(name string) (*entity.Client, error)
+	Update(client *entity.Client) error
 }
 
 type BackupRepository interface {
-	Create(clientrun *entity.ClientRun) (string, error)
+	Create(clientrun *entity.ClientRun, clientid, policyid string) (string, error)
+	ListClientRuns(id string) ([]*entity.ClientRun, error)
+	ListClientRunsAll() ([]*entity.ClientRun, error)
 }
 type RabbitRepository interface {
 	StartStorageNode(clients []string, storagenode, policy string) error
@@ -29,6 +32,8 @@ type BusRepository interface {
 	Unsubscribe(topic string, ch chan rabbitBus.Event) error
 }
 type UseCase interface {
+	ListBackups() ([]*entity.ClientRun, error)
+	//ListBackupsShort()([]*entity.ClientRun, error)
 	StartBackup(policy, Type string) error
 	//StartIncrementalBackup(policy string) error
 }

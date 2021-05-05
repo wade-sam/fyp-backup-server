@@ -137,6 +137,7 @@ func deleteClient(client client.UseCase, policy policy.UseCase) http.Handler {
 			w.Write([]byte(errorMessage))
 			return
 		}
+		w.WriteHeader(http.StatusCreated)
 	})
 }
 
@@ -169,7 +170,10 @@ func directoryScan(dispatcher dispatcher.UseCase) http.Handler {
 			w.Write([]byte(errorMessage))
 		}
 
-		if err := json.NewEncoder(w).Encode(directory); err != nil {
+		var returnDir presenter.Directory
+		mapstructure.Decode(directory, &returnDir)
+		//log.Println("New directory", newDirectory)
+		if err := json.NewEncoder(w).Encode(returnDir); err != nil {
 			fmt.Println("ERROR", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(errorMessage))
@@ -182,7 +186,8 @@ func showPolicies(client string, policy policy.UseCase) ([]string, error) {
 	clientPolicies := []string{}
 	data, err := policy.ListPolicies()
 	if err != nil {
-		return nil, err
+		log.Println("show policies", err)
+		return nil, nil
 	}
 	for _, j := range data {
 		c, ok := j.GetClient(client)
@@ -222,7 +227,7 @@ func listClients(client client.UseCase, policy policy.UseCase) http.Handler {
 		for _, j := range data {
 			policies, err := showPolicies(j.ID, policy)
 			if err != nil {
-				log.Println("ERROR", err, j.ID)
+				log.Println("ERROR1", err, j.ID)
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte(errorMessage))
 				return
