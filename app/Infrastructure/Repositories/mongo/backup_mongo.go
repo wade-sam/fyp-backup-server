@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/wade-sam/fyp-backup-server/entity"
@@ -26,13 +27,14 @@ func NewBackupMongo(db *mongo.Client, database, collection string, timeout int) 
 	}
 }
 
-func (b *BackupMongo) Create(clientrun *entity.ClientRun, clientID, policyID string) (string, error) {
+func (b *BackupMongo) Create(clientrun *entity.ClientRun, clientID, policyID, runtime string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), b.timeout)
 	defer cancel()
 	collection := b.db.Database(b.database).Collection(b.collection)
 	clientrun.Client = clientID
 	clientrun.Policy = policyID
 	mgclientrun, err := ClientRunToMClientRun(clientrun)
+	//log.Println("MGCLIENTRUN", mgclientrun)
 	if err != nil {
 		return "", err
 	}
@@ -130,9 +132,11 @@ func ClientRunToMClientRun(clientrun *entity.ClientRun) (*MGClientRun, error) {
 	mgclientrun.Status = clientrun.Status
 	mgclientrun.Client = cid
 	mgclientrun.Policy = pid
+	mgclientrun.Date = clientrun.Date
 	mgclientrun.BackupSuccess = clientrun.SuccesfullFiles
 	mgclientrun.BackupFailure = clientrun.FailedFiles
 	mgclientrun.TotalFiles = clientrun.TotalFiles
+	log.Println("date:", mgclientrun.Date)
 	return &mgclientrun, nil
 }
 
@@ -145,10 +149,12 @@ func MClientRunToClientRun(Mgclientrun *MGClientRun) (*entity.ClientRun, error) 
 		ID:              id,
 		Client:          clientID,
 		Policy:          policyID,
+		Date:            Mgclientrun.Date,
 		Status:          Mgclientrun.Status,
 		TotalFiles:      Mgclientrun.TotalFiles,
 		SuccesfullFiles: Mgclientrun.BackupSuccess,
 		FailedFiles:     Mgclientrun.BackupFailure,
 	}
+	log.Println("date:", Mgclientrun.Date)
 	return &clientrun, nil
 }

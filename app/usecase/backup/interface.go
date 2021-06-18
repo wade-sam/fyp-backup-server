@@ -17,7 +17,7 @@ type ClientRepository interface {
 }
 
 type BackupRepository interface {
-	Create(clientrun *entity.ClientRun, clientid, policyid string) (string, error)
+	Create(clientrun *entity.ClientRun, clientid, policyid, runtime string) (string, error)
 	ListClientRuns(id string) ([]*entity.ClientRun, error)
 	ListClientRunsAll() ([]*entity.ClientRun, error)
 }

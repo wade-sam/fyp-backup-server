@@ -43,6 +43,7 @@ type ClientRun struct {
 	Name            string                 `json:"runname"`
 	Client          []string               `json:"clientname"`
 	Policy          []string               `json:"policyname"`
+	Date            string                 `json:"date"`
 	Status          string                 `json:"runstatus"`
 	TotalFiles      int                    `json:"totalfiles"`
 	SuccesfullFiles map[string]*ClientFile `json:"successfiles"`
@@ -54,6 +55,7 @@ type ClientRunSmall struct {
 	Name       string `json:"runname"`
 	Client     string `json:"clientname"`
 	Policy     string `json:"policyname"`
+	Date       string `json:"date"`
 	Status     string `json:"runstatus"`
 	TotalFiles int    `json:"totalfiles"`
 }

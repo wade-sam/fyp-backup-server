@@ -167,7 +167,10 @@ func (s *Service) StartBackup(name, backuptype string) error {
 			newclient.Status = "Success"
 			totalFiles := len(newclient.SuccesfullFiles) + len(newclient.FailedFiles)
 			newclient.TotalFiles = totalFiles
-			id, err := s.backup.Create(newclient, clients[i].ID, policy.PolicyID)
+			currentTime := time.Now()
+			runtime := currentTime.Format("01-02-2006")
+			newclient.Date = runtime
+			id, err := s.backup.Create(newclient, clients[i].ID, policy.PolicyID, runtime)
 			if err != nil {
 				log.Println("ERROR:", err)
 				newclient.Status = "Failed"
@@ -201,8 +204,6 @@ func (s *Service) StartBackup(name, backuptype string) error {
 	log.Println("BACKUP SUCCESFULL")
 	return nil
 }
-
-func clientFileDetails()
 
 func (bj *Backup) finaliseBackupCompletion(retention int) (*entity.Backups, error) {
 	currentTime := time.Now()
@@ -239,7 +240,8 @@ func (bj *Backup) handleStorageNodeResponse(channel rabbitBus.EventChannel) (str
 		case msg := <-channel:
 			policyID := ""
 			mapstructure.Decode(msg.Data, &policyID)
-			close(channel)
+			bj.bus.Unsubscribe("StorageNodeJob", channel)
+			//	close(channel)
 			return policyID, nil
 		default:
 			time.Sleep(1 * time.Second)

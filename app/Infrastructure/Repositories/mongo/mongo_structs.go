@@ -43,6 +43,7 @@ type MGClientRun struct {
 	ClientRunID   primitive.ObjectID            `bson:"_id"`
 	Client        primitive.ObjectID            `bson:"clientname"`
 	Policy        primitive.ObjectID            `json:"policyname"`
+	Date          string                        `json:"date"`
 	Status        string                        `bson:"status"`
 	TotalFiles    int                           `bson:"totalfiles"`
 	BackupSuccess map[string]*entity.ClientFile `bson:"backupsuccess"`
