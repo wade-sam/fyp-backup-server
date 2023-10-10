@@ -3,8 +3,12 @@ module github.com/wade-sam/fyp-backup-server
 go 1.15
 
 require (
-	github.com/go-playground/validator/v10 v10.4.1
+	github.com/gorilla/handlers v1.5.1
+	github.com/gorilla/mux v1.8.0
+	github.com/mitchellh/mapstructure v1.4.1
 	github.com/pkg/errors v0.9.1
+	github.com/satori/go.uuid v1.2.0
 	github.com/streadway/amqp v1.0.0
+	github.com/stretchr/testify v1.7.0
 	go.mongodb.org/mongo-driver v1.4.6
 )

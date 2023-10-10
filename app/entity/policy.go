@@ -1,0 +1,174 @@
+package entity
+
+import "errors"
+
+type Policy struct {
+	PolicyID   string
+	Policyname string
+	Clients    []string
+	RunTime    string
+	Retention  int
+	State      string
+	Type       string
+	Fullbackup []string
+	IncBackup  []string
+	BackupRun  []*Backups
+}
+
+type Backups struct {
+	ID                 string
+	Status             string
+	Type               string
+	Date               string
+	Expiry             string
+	RunTime            string
+	SuccessFullClients []string
+	FailedClients      []string
+}
+
+func NewBackup(id, s, t, d, e, r string, sc, fc []string) *Backups {
+	return &Backups{
+		ID:                 id,
+		Status:             s,
+		Type:               t,
+		Date:               d,
+		Expiry:             e,
+		RunTime:            r,
+		SuccessFullClients: sc,
+		FailedClients:      fc,
+	}
+}
+
+func NewPolicy(policyname, backupType string, runtime string, retention int, fullbackup, incrementalbackup []string, clients []string) (*Policy, error) {
+	p := &Policy{
+		Policyname: policyname,
+		Clients:    clients,
+		Retention:  retention,
+		RunTime:    runtime,
+		Type:       backupType,
+	}
+
+	p.AddState()
+	err := p.AddBackupPlan(fullbackup, incrementalbackup)
+	if err != nil {
+		return nil, ErrInvalidBackupPlan
+	}
+	err = p.ValidatePolicy()
+	if err != nil {
+		return nil, ErrInvalidEntity
+	}
+	return p, nil
+}
+
+func (p *Policy) AddBackupPlan(fullbackup, incrementalbackup []string) error {
+	if p.Type == "full" && len(fullbackup) > 0 && len(incrementalbackup) == 0 {
+		p.Fullbackup = append(fullbackup)
+		p.IncBackup = append(incrementalbackup)
+		return nil
+	} else if p.Type == "both" && len(fullbackup) > 0 && len(incrementalbackup) > 0 {
+		err := checkTwoForOverlappingDays(fullbackup, incrementalbackup)
+		if err != nil {
+			return ErrInvalidBackupPlan
+		}
+		p.Fullbackup = append(fullbackup)
+		p.IncBackup = append(incrementalbackup)
+		return nil
+	} else {
+		return ErrInvalidBackupPlan
+	}
+}
+
+func checkTwoForOverlappingDays(fb []string, ib []string) error {
+	for _, i := range fb {
+		for _, j := range ib {
+			if j == i {
+				return ErrInvalidBackupPlan
+			}
+		}
+	}
+	return nil
+}
+
+func checkBackupPlan(backup []string) error {
+	for _, i := range backup {
+		for _, j := range backup {
+			if j == i {
+				return ErrInvalidBackupPlan
+			}
+		}
+	}
+	return nil
+}
+
+func (p *Policy) AddClient(client string) error {
+	_, err := p.GetClient(client)
+	if err == nil {
+		return ErrClientAlreadyAdded
+	}
+	p.Clients = append(p.Clients, client)
+	p.AddState()
+	return nil
+}
+
+func (p *Policy) AddBackupRun(run *Backups) error {
+	_, err := p.GetBackupRun(run.ID)
+	if err == nil {
+		return errors.New("ERROR FOUND EXISTING BACKUP PLAN")
+	}
+	p.BackupRun = append(p.BackupRun, run)
+	return nil
+}
+
+func (p *Policy) GetBackupRun(run string) (*Backups, error) {
+	for _, v := range p.BackupRun {
+		if v.ID == run {
+			return v, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (p *Policy) RemoveClient(client string) error {
+	for i, j := range p.Clients {
+		if j == client {
+			p.Clients = append(p.Clients[:i], p.Clients[i+1:]...)
+			return nil
+		}
+	}
+	return ErrNotFound
+}
+
+func (p *Policy) GetClient(client string) (string, error) {
+	for _, v := range p.Clients {
+		if v == client {
+			return client, nil
+		}
+	}
+	return client, ErrNotFound
+}
+
+func (p *Policy) GetState() (string, error) {
+	if p.State == "" {
+		return "", ErrNotFound
+
+	}
+	return p.State, nil
+
+}
+
+func (p *Policy) AddState() error {
+	if len(p.Clients) > 0 {
+		p.State = "active"
+	} else {
+		p.State = "inactive"
+	}
+	return nil
+}
+
+func (p *Policy) ValidatePolicy() error {
+	if p.Policyname == "" || p.Type == "" || p.Retention == 0 || p.RunTime == "" {
+
+		return ErrInvalidEntity
+	}
+	return nil
+}
